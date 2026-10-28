@@ -1,17 +1,27 @@
-
 #include "cppsqlx/sqlexpression.hpp"
 #include <sstream>
+#include <algorithm>
+
+// 🟢 AJOUT CRUCIAL : Permet d'utiliser l'opérateur ""sv pour créer des std::string_view
+// et ainsi lever toute ambiguïté pour le compilateur sur les chaînes littérales.
+using namespace std::string_view_literals;
 
 namespace cppsqlx
 {
 
-SQLExpression::SQLExpression()
-    : expression_("")
+// Constructeurs
+SQLExpression::SQLExpression(std::string expr) noexcept
+    : expression_(std::move(expr))
 {
 }
 
-SQLExpression::SQLExpression(std::string expr)
-    : expression_(std::move(expr))
+SQLExpression::SQLExpression(std::string_view expr)
+    : expression_(expr)
+{
+}
+
+SQLExpression::SQLExpression(int64_t value)
+    : expression_(std::to_string(value))
 {
 }
 
@@ -41,12 +51,13 @@ SQLExpression::SQLExpression(std::string column, std::string tableAlias, bool do
     }
 }
 
-std::string SQLExpression::alias() const
+// Accesseurs
+const std::string& SQLExpression::alias() const noexcept
 {
     return alias_;
 }
 
-SQLExpression SQLExpression::as(const std::string& alias) const
+SQLExpression SQLExpression::as(std::string_view alias) const
 {
     SQLExpression copy(*this);
     copy.alias_ = alias;
@@ -58,17 +69,13 @@ bool SQLExpression::empty() const noexcept
     return expression_.empty();
 }
 
-// 1. Modifiez toSQLWithAlias pour qu'elle passe le flag à toSQL()
 std::string SQLExpression::toSQLWithAlias(bool quoted) const {
     if (alias_.empty()) {
-        return toSQL(quoted); // 💡 On passe le flag à toSQL
+        return toSQL(quoted);
     }
     std::string formattedAlias = quoted ? quoteIdentifier(alias_) : alias_;
-    return toSQL(quoted) + " AS " + formattedAlias; // 💡 On passe le flag à toSQL
+    return toSQL(quoted) + " AS " + formattedAlias;
 }
-
-
-
 
 std::string SQLExpression::toSQL(bool quoted) const {
     if (!quoted) {
@@ -76,102 +83,48 @@ std::string SQLExpression::toSQL(bool quoted) const {
         raw.erase(std::remove(raw.begin(), raw.end(), '"'), raw.end());
         return raw;
     }
-    
-    // Logique d'origine lorsque quoted == true (conserve les guillemets "q1"."c12")
     return expression_; 
 }
 
+// Opérateurs mathématiques et logiques
+SQLExpression SQLExpression::operator+(const SQLExpression& rhs) const { return wrapBinary(rhs, "+"sv); }
+SQLExpression SQLExpression::operator-(const SQLExpression& rhs) const { return wrapBinary(rhs, "-"sv); }
+SQLExpression SQLExpression::operator*(const SQLExpression& rhs) const { return wrapBinary(rhs, "*"sv); }
+SQLExpression SQLExpression::operator/(const SQLExpression& rhs) const { return wrapBinary(rhs, "/"sv); }
+SQLExpression SQLExpression::operator&&(const SQLExpression& rhs) const { return wrapBinary(rhs, "AND"sv); }
+SQLExpression SQLExpression::operator||(const SQLExpression& rhs) const { return wrapBinary(rhs, "OR"sv); }
 
-
-// Operators
-SQLExpression SQLExpression::operator+(const SQLExpression& rhs) const
-{
-    return wrapBinary(rhs, "+");
-}
-
-SQLExpression SQLExpression::operator-(const SQLExpression& rhs) const
-{
-    return wrapBinary(rhs, "-");
-}
-
-SQLExpression SQLExpression::operator*(const SQLExpression& rhs) const
-{
-    return wrapBinary(rhs, "*");
-}
-
-SQLExpression SQLExpression::operator/(const SQLExpression& rhs) const
-{
-    return wrapBinary(rhs, "/");
-}
-
-SQLExpression SQLExpression::operator&&(const SQLExpression& rhs) const
-{
-    return wrapBinary(rhs, "AND");
-}
-
-SQLExpression SQLExpression::operator||(const SQLExpression& rhs) const
-{
-    return wrapBinary(rhs, "OR");
-}
-
-// Comparisons
-SQLExpression SQLExpression::equal(const SQLExpression& rhs) const
-{
-    return wrapBinary(rhs, "=");
-}
-
-SQLExpression SQLExpression::notEqual(const SQLExpression& rhs) const
-{
-    return wrapBinary(rhs, "<>");
-}
-
-SQLExpression SQLExpression::greater(const SQLExpression& rhs) const
-{
-    return wrapBinary(rhs, ">");
-}
-
-SQLExpression SQLExpression::less(const SQLExpression& rhs) const
-{
-    return wrapBinary(rhs, "<");
-}
-
-SQLExpression SQLExpression::greaterOrEqual(const SQLExpression& rhs) const
-{
-    return wrapBinary(rhs, ">=");
-}
-
-SQLExpression SQLExpression::lessOrEqual(const SQLExpression& rhs) const
-{
-    return wrapBinary(rhs, "<=");
-}
+// Comparaisons
+SQLExpression SQLExpression::equal(const SQLExpression& rhs) const { return wrapBinary(rhs, "="sv); }
+SQLExpression SQLExpression::notEqual(const SQLExpression& rhs) const { return wrapBinary(rhs, "<>"sv); }
+SQLExpression SQLExpression::greater(const SQLExpression& rhs) const { return wrapBinary(rhs, ">"sv); }
+SQLExpression SQLExpression::less(const SQLExpression& rhs) const { return wrapBinary(rhs, "<"sv); }
+SQLExpression SQLExpression::greaterOrEqual(const SQLExpression& rhs) const { return wrapBinary(rhs, ">="sv); }
+SQLExpression SQLExpression::lessOrEqual(const SQLExpression& rhs) const { return wrapBinary(rhs, "<="sv); }
 
 // LIKE
-SQLExpression SQLExpression::like(const std::string& pattern) const
+SQLExpression SQLExpression::like(std::string_view pattern) const
 {
     return SQLExpression("(" + expression_ + " LIKE " + quoteString(pattern) + ")");
 }
 
-SQLExpression SQLExpression::notLike(const std::string& pattern) const
+SQLExpression SQLExpression::notLike(std::string_view pattern) const
 {
     return SQLExpression("(" + expression_ + " NOT LIKE " + quoteString(pattern) + ")");
 }
 
-// IN
+// Clauses IN et BETWEEN
 SQLExpression SQLExpression::in(const std::vector<std::string>& values) const
 {
-    if (values.empty())
-    {
-        return SQLExpression("(1 = 0)");
-    }
+    // 🟢 Correction du type littéral ambigu par l'utilisation de ""sv
+    if (values.empty()) return SQLExpression("(1 = 0)"sv);
+    
     std::ostringstream oss;
     oss << "(" << expression_ << " IN (";
     for (size_t i = 0; i < values.size(); ++i)
     {
         oss << quoteString(values[i]);
-        if (i + 1 < values.size())
-        {
-            oss << ", ";
-        }
+        if (i + 1 < values.size()) oss << ", ";
     }
     oss << "))";
     return SQLExpression(oss.str());
@@ -179,19 +132,15 @@ SQLExpression SQLExpression::in(const std::vector<std::string>& values) const
 
 SQLExpression SQLExpression::in(const std::vector<int>& values) const
 {
-    if (values.empty())
-    {
-        return SQLExpression("(1 = 0)");
-    }
+    // 🟢 Correction du type littéral ambigu par l'utilisation de ""sv
+    if (values.empty()) return SQLExpression("(1 = 0)"sv);
+    
     std::ostringstream oss;
     oss << "(" << expression_ << " IN (";
     for (size_t i = 0; i < values.size(); ++i)
     {
         oss << values[i];
-        if (i + 1 < values.size())
-        {
-            oss << ", ";
-        }
+        if (i + 1 < values.size()) oss << ", ";
     }
     oss << "))";
     return SQLExpression(oss.str());
@@ -199,67 +148,36 @@ SQLExpression SQLExpression::in(const std::vector<int>& values) const
 
 SQLExpression SQLExpression::in(const std::vector<SQLExpression>& values) const
 {
-    if (values.empty())
-    {
-        return SQLExpression("(1 = 0)");
-    }
+    // 🟢 Correction du type littéral ambigu par l'utilisation de ""sv
+    if (values.empty()) return SQLExpression("(1 = 0)"sv);
+    
     std::ostringstream oss;
     oss << "(" << expression_ << " IN (";
     for (size_t i = 0; i < values.size(); ++i)
     {
         oss << values[i].toSQL();
-        if (i + 1 < values.size())
-        {
-            oss << ", ";
-        }
+        if (i + 1 < values.size()) oss << ", ";
     }
     oss << "))";
     return SQLExpression(oss.str());
 }
 
-// BETWEEN
 SQLExpression SQLExpression::between(const SQLExpression& low, const SQLExpression& high) const
 {
     return SQLExpression("(" + expression_ + " BETWEEN " + low.expression_ + " AND " + high.expression_ + ")");
 }
 
-// Functions
-SQLExpression SQLExpression::avg() const
-{
-    return wrapFunction("AVG");
-}
+// Fonctions d'agrégation et SQL
+SQLExpression SQLExpression::avg() const { return wrapFunction("AVG"sv); }
+SQLExpression SQLExpression::sum() const { return wrapFunction("SUM"sv); }
+SQLExpression SQLExpression::count() const { return wrapFunction("COUNT"sv); }
+SQLExpression SQLExpression::max() const { return wrapFunction("MAX"sv); }
+SQLExpression SQLExpression::min() const { return wrapFunction("MIN"sv); }
+SQLExpression SQLExpression::upper() const { return wrapFunction("UPPER"sv); }
+SQLExpression SQLExpression::lower() const { return wrapFunction("LOWER"sv); }
+SQLExpression SQLExpression::round() const { return wrapFunction("ROUND"sv); }
 
-SQLExpression SQLExpression::sum() const
-{
-    return wrapFunction("SUM");
-}
-
-SQLExpression SQLExpression::count() const
-{
-    return wrapFunction("COUNT");
-}
-
-SQLExpression SQLExpression::max() const
-{
-    return wrapFunction("MAX");
-}
-
-SQLExpression SQLExpression::min() const
-{
-    return wrapFunction("MIN");
-}
-
-SQLExpression SQLExpression::upper() const
-{
-    return wrapFunction("UPPER");
-}
-
-SQLExpression SQLExpression::lower() const
-{
-    return wrapFunction("LOWER");
-}
-
-SQLExpression SQLExpression::coalesce(const std::string& fallback) const
+SQLExpression SQLExpression::coalesce(std::string_view fallback) const
 {
     return SQLExpression("COALESCE(" + expression_ + ", " + quoteString(fallback) + ")");
 }
@@ -272,18 +190,10 @@ SQLExpression SQLExpression::coalesce(std::initializer_list<SQLExpression> args)
     for (const auto& arg : args)
     {
         oss << arg.toSQL();
-        if (++count < args.size())
-        {
-            oss << ", ";
-        }
+        if (++count < args.size()) oss << ", ";
     }
     oss << ")";
     return SQLExpression(oss.str());
-}
-
-SQLExpression SQLExpression::round() const
-{
-    return wrapFunction("ROUND");
 }
 
 SQLExpression SQLExpression::round(int decimals) const
@@ -315,70 +225,59 @@ SQLExpression SQLExpression::caseExpr(
     return SQLExpression(oss.str());
 }
 
-SQLExpression SQLExpression::isNull() const
-{
-    return SQLExpression("(" + expression_ + " IS NULL)");
+SQLExpression SQLExpression::isNull() const 
+{ 
+    return SQLExpression("(" + expression_ + " IS NULL)"); 
 }
 
-SQLExpression SQLExpression::isNotNull() const
-{
-    return SQLExpression("(" + expression_ + " IS NOT NULL)");
+SQLExpression SQLExpression::isNotNull() const 
+{ 
+    return SQLExpression("(" + expression_ + " IS NOT NULL)"); 
 }
 
-// Static helpers
-std::string SQLExpression::quoteIdentifier(const std::string& ident)
+// Helpers de Quoting Statiques et Optimisés
+std::string SQLExpression::quoteIdentifier(std::string_view ident)
 {
     std::string out;
     out.reserve(ident.size() + 2);
     out.push_back('"');
     for (char c : ident)
     {
-        if (c == '"')
-        {
-            out.push_back('"');
-            out.push_back('"');
-        }
-        else
-        {
-            out.push_back(c);
-        }
+        if (c == '"') { out.push_back('"'); out.push_back('"'); }
+        else out.push_back(c);
     }
     out.push_back('"');
     return out;
 }
 
-std::string SQLExpression::quoteString(const std::string& s)
+std::string SQLExpression::quoteString(std::string_view s)
 {
     std::string out;
     out.reserve(s.size() + 2);
     out.push_back('\'');
     for (char c : s)
     {
-        if (c == '\'')
-        {
-            out.push_back('\'');
-            out.push_back('\'');
-        }
-        else
-        {
-            out.push_back(c);
-        }
+        if (c == '\'') { out.push_back('\''); out.push_back('\''); }
+        else out.push_back(c);
     }
     out.push_back('\'');
     return out;
 }
 
-// Private helpers
-SQLExpression SQLExpression::wrapFunction(const std::string& func) const
+std::string SQLExpression::quoteString(std::string s)
 {
-    SQLExpression res(func + "(" + expression_ + ")");
-    res.alias_ = alias_;
-    return res;
+    return quoteString(std::string_view(s));
 }
 
-SQLExpression SQLExpression::wrapBinary(const SQLExpression& rhs, const std::string& op) const
+// Helpers Privés
+SQLExpression SQLExpression::wrapFunction(std::string_view func) const
 {
-    return SQLExpression("(" + expression_ + " " + op + " " + rhs.expression_ + ")");
+    return SQLExpression(std::string(func) + "(" + expression_ + ")");
+}
+
+SQLExpression SQLExpression::wrapBinary(const SQLExpression& rhs, std::string_view op) const
+{
+    return SQLExpression("(" + expression_ + " " + std::string(op) + " " + rhs.expression_ + ")");
 }
 
 } // namespace cppsqlx
