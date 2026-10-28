@@ -9,9 +9,12 @@ Copyright (c) 2025 Y-HRAH KRONG Santili
 #include <cppsqlx/sqlquery.hpp>
 #include <cppsqlx/filterable.h>
 #include <string>
-#include <memory>
+#include <utility>
 
 namespace cppsqlx {
+
+// Déclaration anticipée propre de la classe Connection
+class Connection;
 
 /**
  * @brief Base template for Data Transaction Language queries (INSERT, UPDATE, DELETE).
@@ -23,18 +26,36 @@ protected:
     std::string table_;
 
 public:
-    explicit DTLQuery(const std::string& table) : table_(table) {}
-    virtual ~DTLQuery() = default;
+    /**
+     * @brief Constructeur optimisé par sémantique de mouvement.
+     */
+    explicit DTLQuery(std::string table) noexcept : table_(std::move(table)) {}
+    
+    // Destructeur virtuel par défaut
+    ~DTLQuery() override = default;
+
+    // Règle des 5 : Assurer un comportement sain lors des copies/déplacements en template
+    DTLQuery(const DTLQuery&) = default;
+    DTLQuery& operator=(const DTLQuery&) = default;
+    DTLQuery(DTLQuery&&) noexcept = default;
+    DTLQuery& operator=(DTLQuery&&) noexcept = default;
 
     /**
      * @brief Execute the query and return affected rows.
+     * 🟢 CORRECTION : Utilisation d'une référence/pointeur nu Connection au lieu du shared_ptr obsolète.
      */
-    int run(std::shared_ptr<class Connection> connection) override {
-        // Placeholder: actual DB execution logic goes here
+    int run(Connection& connection) override {
+        // Logique d'exécution fictive (à surcharger ou implémenter via libpq)
+        // Exemple :
+        // auto stmt = connection.createStatement();
+        // ...
         return 1;
     }
 
-    const std::string& table() const { return table_; }
+    /**
+     * @brief Accesseur optimisé.
+     */
+    const std::string& table() const noexcept { return table_; }
 };
 
 } // namespace cppsqlx
