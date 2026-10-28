@@ -27,6 +27,8 @@ SOFTWARE.
 
 #include <cppsqlx/sqlexpression.hpp>
 #include <string>
+#include <string_view>
+#include <utility>
 
 namespace cppsqlx {
 
@@ -39,38 +41,58 @@ class filterable {
 protected:
     SQLExpression wherexpr_;
 
+    // Helpers internes (sécurisés et explicites) pour le CRTP
+    T& derived() noexcept { return static_cast<T&>(*this); }
+    const T& derived() const noexcept { return static_cast<const T&>(*this); }
+
 public:
     filterable() = default;
-
-    // Cast operators for CRTP
-    operator T&() { return static_cast<T&>(*this); }
-    operator const T&() const { return static_cast<const T&>(*this); }
+    
+    // Destructeur polymorphique non-virtuel protégé ou public selon l'usage, 
+    // default est suffisant ici car filterable ne détient pas de polymorphisme dynamique.
+    ~filterable() = default;
 
     /**
-     * @brief Add WHERE clause using SQLExpression.
-     * @param expr SQLExpression representing the condition.
-     * @return Reference to derived type for chaining.
+     * @brief Add WHERE clause using SQLExpression (Lvalue version - Copy).
      */
     T& where(const SQLExpression& expr) {
         wherexpr_ = expr;
-        return static_cast<T&>(*this);
+        return derived();
     }
 
     /**
-     * @brief Add WHERE clause using raw SQL string.
-     * @param expr Raw SQL condition string.
-     * @return Reference to derived type for chaining.
+     * @brief Add WHERE clause using SQLExpression (Rvalue version - Move).
+     * 🟢 AJOUT : Évite les copies coûteuses d'expressions complexes temporaires.
      */
-    T& where(const std::string& expr) {
+    T& where(SQLExpression&& expr) noexcept(std::is_nothrow_move_assignable_v<SQLExpression>) {
+        wherexpr_ = std::move(expr);
+        return derived();
+    }
+
+    /**
+     * @brief Add WHERE clause using a string view (Modern C++ replacement for raw SQL).
+     * 🟢 AMÉLIORATION : std::string_view évite les allocations de std::string lors du passage de littéraux.
+     */
+    T& where(std::string_view expr) {
         wherexpr_ = SQLExpression(expr);
-        return static_cast<T&>(*this);
+        return derived();
+    }
+
+    /**
+     * @brief Add WHERE clause using raw SQL string (Rvalue version).
+     * 🟢 AMÉLIORATION : Si l'utilisateur passe un std::string temporaire (ex: issu d'un sstream),
+     * on le déplace efficacement.
+     */
+    T& where(std::string expr) noexcept(std::is_nothrow_constructible_v<SQLExpression, std::string&&>) {
+        wherexpr_ = SQLExpression(std::move(expr));
+        return derived();
     }
 
     /**
      * @brief Get the WHERE expression.
      * @return const reference to SQLExpression.
      */
-    const SQLExpression& whereExpr() const {
+    const SQLExpression& whereExpr() const noexcept {
         return wherexpr_;
     }
 };
