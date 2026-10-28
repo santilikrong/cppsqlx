@@ -26,6 +26,7 @@ SOFTWARE.
 #include "cppsqlx/logger.hpp"
 #include <boost/program_options.hpp>
 #include "cppsqlx/connection.hpp"
+#include "cppsqlx/statement.hpp" // 🟢 AJOUT CRUCIAL : Rend le type Statement complet pour l'appel de execute()
 
 namespace po = boost::program_options;
 
@@ -37,7 +38,13 @@ int main(int argc, char *argv[])
     std::string dbname, user, password, host, query;
     int port;
     po::options_description desc("Allowed options");
-    desc.add_options()("help,h", "Show help message")("dbname,d", po::value<std::string>(&dbname)->default_value("dizdb"), "Database name")("user,u", po::value<std::string>(&user)->default_value("myuser"), "Database user")("host,H", po::value<std::string>(&host)->default_value("localhost"), "Database host")("port,P", po::value<int>(&port)->default_value(5432), "Database port")("query,q", po::value<std::string>(&query)->required(), "SQL query to stream");
+    desc.add_options()
+        ("help,h", "Show help message")
+        ("dbname,d", po::value<std::string>(&dbname)->default_value("dizdb"), "Database name")
+        ("user,u", po::value<std::string>(&user)->default_value("myuser"), "Database user")
+        ("host,H", po::value<std::string>(&host)->default_value("localhost"), "Database host")
+        ("port,P", po::value<int>(&port)->default_value(5432), "Database port")
+        ("query,q", po::value<std::string>(&query)->required(), "SQL query to stream");
 
     po::variables_map vm;
     try
@@ -58,6 +65,7 @@ int main(int argc, char *argv[])
     }
 
     LOG4CXX_INFO(logger, "Starting example application");
+    
     // Build connection string
     std::string connStr = "dbname=" + dbname +
                           " user=" + user +
@@ -76,25 +84,42 @@ int main(int argc, char *argv[])
     {
         LOG4CXX_INFO(logger, "Connected to PostgreSQL successfully");
         auto stmt = conn.createStatement();
-        auto res = stmt->execute(query);
-        int numcols = res->columns();
-        std::cout << "Number of cols : " << res->columns() << std::endl;
-        std::cout << "Number of rows : " << res->rows() << std::endl;
+        
+        // 🟢 Correction : Traiter le type de retour std::expected
+        auto resExpected = stmt->execute(query);
+        if (!resExpected.has_value()) 
+        {
+            LOG4CXX_ERROR(logger, "Query execution failed: " + resExpected.error());
+            return 1;
+        }
 
-        for (auto row : *res)
+        // Récupération de l'objet Resultset réel par référence
+        auto& res = resExpected.value();
+        
+        int numcols = res.columns(); // Remplacement de res->columns() par res.columns()
+        std::cout << "Number of cols : " << res.columns() << std::endl;
+        std::cout << "Number of rows : " << res.rows() << std::endl;
+
+        // 🟢 Correction du parcours de Resultset (suppression de l'étoile *res)
+        for (auto row : res)
         {
             for (int i = 0; i < numcols; i++)
             {
                 auto value = row[i];
-                std::cout << *value << ";";
+                // Vérification si la valeur optionnelle contient une chaîne avant affichage
+                if (value.has_value()) {
+                    std::cout << value.value() << ";";
+                } else {
+                    std::cout << "NULL;";
+                }
             };
             std::cout << std::endl;
         }
 
-        // Remplacer "conn.close();" à la ligne 97 par :
-        if (auto res = conn.close(); !res)
+        // Fermeture propre de la connexion
+        if (auto closeRes = conn.close(); !closeRes)
         {
-            LOG4CXX_WARN(logger, "Error while closing connection: " + res.error());
+            LOG4CXX_WARN(logger, "Error while closing connection: " + closeRes.error());
         }
         LOG4CXX_INFO(logger, "Disconnected from PostgreSQL");
     }
@@ -107,3 +132,4 @@ int main(int argc, char *argv[])
 
     return 0;
 }
+

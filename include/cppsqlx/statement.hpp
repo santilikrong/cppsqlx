@@ -25,24 +25,37 @@ SOFTWARE.
 #ifndef STATEMENT_HPP
 #define STATEMENT_HPP
 
-#include <cppsqlx/cppsqlx.hpp>
+#include <string>
+#include <vector>
+#include <expected>
 #include "cppsqlx/resultset.hpp"
+
+// Déclaration anticipée de libpq pour éviter les fuites d'en-têtes C
+struct pg_conn;
+typedef struct pg_conn PGconn;
 
 namespace cppsqlx {
 
 class Statement {
 public:
-    explicit Statement(std::shared_ptr<PGconn> conn);
+    // Le Statement observe la connexion (non-owning pointer).
+    explicit Statement(PGconn* conn);
     ~Statement() = default;
 
+    // Règle des 5 : On bloque la copie
+    Statement(const Statement&) = delete;
+    Statement& operator=(const Statement&) = delete;
+    Statement(Statement&&) noexcept = default;
+    Statement& operator=(Statement&&) noexcept = default;
+
     std::expected<void, std::string>         executeUpdate(const std::string& sql);
-    std::expected<Resultset, std::string>    execute(const std::string& sql);
+    std::expected<Resultset, std::string>    execute(const std::string& sql); // Orthographe correcte : Resultset
     std::expected<void, std::string>         prepareStatement(const std::string& stmtName, const std::string& sql, int paramCount);
     std::expected<void, std::string>         executePrepared(const std::string& stmtName, const std::vector<std::string>& params);
     std::expected<void, std::string>         executeBatch(const std::vector<std::string>& sqlStatements);
 
 private:
-    std::shared_ptr<PGconn> conn_;
+    PGconn* conn_; // Pointeur brut d'observation
 };
 
 } // namespace cppsqlx

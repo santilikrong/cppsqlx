@@ -1,4 +1,7 @@
 #include "cppsqlx/datasetfactory.hpp"
+#include "cppsqlx/connection.hpp"
+#include "cppsqlx/statement.hpp" // 🟢 AJOUT CRUCIAL : Rend le type Statement complet
+#include "cppsqlx/resultset.hpp" // 🟢 AJOUT CRUCIAL : Rend le type Resultset complet
 #include <sstream>
 
 namespace cppsqlx {
@@ -26,6 +29,7 @@ std::expected<Dataset, std::string> DatasetFactory::createFromDatabase(
         << "AND table_schema = '" << schemaName << "' "
         << "ORDER BY ordinal_position ASC;";
 
+    // 🟢 Fonctionne parfaitement maintenant que l'en-tête de Statement est inclus
     auto result = stmtPtr->execute(sql.str());
     if (!result.has_value()) {
         return std::unexpected("Échec de la récupération des métadonnées : " + result.error());
@@ -40,7 +44,7 @@ std::expected<Dataset, std::string> DatasetFactory::createFromDatabase(
     Dataset ds(tableName);
     ds.setSchema(schemaName);
 
-    // Parcours sécurisé des lignes du Resultset
+    // 🟢 Fonctionne parfaitement maintenant que l'en-tête de Resultset est inclus
     for (Resultset::Row row : resultset) {
         // 1. Extraction stricte via les index numériques du SELECT (0 à 7)
         auto nameExpected      = row[0];

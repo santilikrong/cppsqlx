@@ -21,61 +21,88 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
+
 #include "cppsqlx/connection.hpp"
+#include "cppsqlx/statement.hpp" // 🟢 Crucial : Placé ici, il rend le type Statement COMPLET pour tout le fichier
+#include <libpq-fe.h> 
+#include <utility>
 
 namespace cppsqlx {
 
-Connection::Connection(const std::string& connect_string)
-    : connection_string_(connect_string),
-      conn_(nullptr, &PQfinish) {
-    sslmodes_ = {
-        {sslmode::DISABLE, SSL_DISABLE},
-        {sslmode::ALLOW, SSL_ALLOW},
-        {sslmode::PREFER, SSL_PREFER},
-        {sslmode::REQUIRE, SSL_REQUIRE},
-        {sslmode::VERIFY_CA, SSL_VERIFY_CA},
-        {sslmode::VERIFY_FULL, SSL_VERIFY_FULL}
-    };
+namespace {
+    // Helper interne pour convertir l'enum sslmode en chaîne
+    constexpr std::string_view to_string_view(sslmode mode) noexcept {
+        switch (mode) {
+            case sslmode::DISABLE:     return ssl_constants::DISABLE;
+            case sslmode::ALLOW:       return ssl_constants::ALLOW;
+            case sslmode::PREFER:      return ssl_constants::PREFER;
+            case sslmode::REQUIRE:     return ssl_constants::REQUIRE;
+            case sslmode::VERIFY_CA:   return ssl_constants::VERIFY_CA;
+            case sslmode::VERIFY_FULL: return ssl_constants::VERIFY_FULL;
+        }
+        return "";
+    }
+} // namespace anonyme
+
+// --- Implémentation du Deleter personnalisé ---
+void PgConnDeleter::operator()(PGconn* conn) const noexcept {
+    if (conn) {
+        PQfinish(conn);
+    }
 }
 
-Connection::~Connection() {
-    // unique_ptr automatically calls PQfinish
+// --- Constructeur & Destructeur ---
+Connection::Connection(std::string connect_string)
+    : connection_string_(std::move(connect_string)),
+      conn_(nullptr) {
 }
 
+// 🟢 Correction : Déclaré explicitement ici. 
+// Maintenant que statement.hpp est inclus au-dessus, le compilateur sait comment 
+// détruire ou gérer correctement les types liés à Statement sans générer d'erreur "sizeof" ou "incomplete type".
+Connection::~Connection() = default; 
+
+// --- Cycle de vie de la connexion ---
 std::expected<void, std::string> Connection::connect() {
+    if (isConnected()) {
+        return {};
+    }
+
     PGconn* rawConn = PQconnectdb(connection_string_.c_str());
     if (PQstatus(rawConn) != CONNECTION_OK) {
         std::string err = PQerrorMessage(rawConn);
-        PQfinish(rawConn);
+        PQfinish(rawConn); 
         return std::unexpected(err);
     }
+    
     conn_.reset(rawConn);
     return {};
 }
 
 std::expected<void, std::string> Connection::close() {
     conn_.reset();
+    conn_info_.is_valid = false;
     return {};
 }
 
 std::expected<void, std::string> Connection::parseConnectionString() {
-    // TODO: Implement parsing logic to populate conn_info_
+    // TODO: Implémenter la logique de parsing pour remplir conn_info_
     return {};
 }
 
-bool Connection::isConnected() const {
-    return conn_ && PQstatus(conn_.get()) == CONNECTION_OK;
+bool Connection::isConnected() const noexcept {
+    return conn_ && (PQstatus(conn_.get()) == CONNECTION_OK);
 }
 
-std::shared_ptr<PGconn> Connection::get() {
-    // Non-owning shared_ptr for safe sharing
-    return std::shared_ptr<PGconn>(conn_.get(), [](PGconn*) {});
+// --- Accesseurs et Fabrique ---
+PGconn* Connection::get() const noexcept {
+    return conn_.get();
 }
-
 
 std::unique_ptr<Statement> Connection::createStatement() {
+    // 🟢 Fonctionne parfaitement maintenant car le constructeur de Statement(PGconn*) 
+    // et sa définition complète sont connus du compilateur dans ce fichier.
     return std::make_unique<Statement>(get());
 }
-
 
 } // namespace cppsqlx

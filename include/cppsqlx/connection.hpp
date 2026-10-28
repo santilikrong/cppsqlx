@@ -24,22 +24,31 @@ SOFTWARE.
 #ifndef CONNECTION_HPP
 #define CONNECTION_HPP
 
-#include <cppsqlx/cppsqlx.hpp>
 #include <memory>
-#include <map>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <expected>
-#include "cppsqlx/statement.hpp"
 
-#define SSL_REQUIRE "require"
-#define SSL_ALLOW   "allow"
-#define SSL_DISABLE "disable"
-#define SSL_PREFER  "prefer"
-#define SSL_VERIFY_CA    "verify-ca"
-#define SSL_VERIFY_FULL  "verify-full"
+// Déclaration anticipée du type de libpq pour éviter d'inclure les en-têtes C
+// dans l'interface publique de votre bibliothèque C++.
+struct pg_conn;
+typedef struct pg_conn PGconn;
 
 namespace cppsqlx {
+
+// Déclaration anticipée de Statement (évite d'inclure statement.hpp si non requis)
+class Statement;
+
+// Constantes typées et scopées remplaçant les #define
+namespace ssl_constants {
+    constexpr std::string_view REQUIRE     = "require";
+    constexpr std::string_view ALLOW       = "allow";
+    constexpr std::string_view DISABLE     = "disable";
+    constexpr std::string_view PREFER      = "prefer";
+    constexpr std::string_view VERIFY_CA   = "verify-ca";
+    constexpr std::string_view VERIFY_FULL = "verify-full";
+}
 
 enum class sslmode { DISABLE, ALLOW, PREFER, REQUIRE, VERIFY_CA, VERIFY_FULL };
 
@@ -58,7 +67,7 @@ struct connection_info {
     std::optional<int> keepalives_interval;
     std::optional<int> keepalives_count;
     std::optional<int> tcp_user_timeout;
-    std::optional<std::string> sslmode;
+    std::optional<sslmode> ssl_mode; // Utilisation de l'enum typé
     std::optional<std::string> sslcert;
     std::optional<std::string> sslkey;
     std::optional<std::string> sslkeylogfile;
@@ -67,23 +76,37 @@ struct connection_info {
     std::optional<std::string> passfile;
 };
 
+// Custom deleter personnalisé pour PGconn permettant de différer l'appel 
+// à PQfinish dans le fichier d'implémentation (.cpp)
+struct PgConnDeleter {
+    void operator()(PGconn* conn) const noexcept;
+};
+
 class Connection {
 public:
-    explicit Connection(const std::string& connect_string);
+    explicit Connection(std::string connect_string);
     ~Connection();
+
+    // Règle des 5 : Empêcher la copie involontaire (gestion de ressource unique)
+    Connection(const Connection&) = delete;
+    Connection& operator=(const Connection&) = delete;
+    Connection(Connection&&) noexcept = default;
+    Connection& operator=(Connection&&) noexcept = default;
 
     std::expected<void, std::string> connect();
     std::expected<void, std::string> close();
     std::unique_ptr<Statement> createStatement();
     std::expected<void, std::string> parseConnectionString();
-    bool isConnected() const;
+    
+    bool isConnected() const noexcept;
 
-    std::shared_ptr<PGconn> get(); // renamed from getShared()
+    // Renvoyer un pointeur nu pour l'observation externe sécurisée.
+    // L'appelant ne possède pas la ressource.
+    PGconn* get() const noexcept;
 
 private:
     std::string connection_string_;
-    std::unique_ptr<PGconn, decltype(&PQfinish)> conn_{nullptr, &PQfinish};
-    std::map<sslmode, std::string> sslmodes_;
+    std::unique_ptr<PGconn, PgConnDeleter> conn_{nullptr};
     connection_info conn_info_;
 };
 
