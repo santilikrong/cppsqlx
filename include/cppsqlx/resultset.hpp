@@ -73,6 +73,11 @@ namespace cppsqlx
             std::expected<double, std::string> getDouble(int col) const;
             bool isNull(int col) const;
 
+            std::expected<std::string, std::string> operator[](const std::string& colName) const;
+            std::expected<int, std::string> getInt(const std::string& colName) const;
+            std::expected<double, std::string> getDouble(const std::string& colName) const;
+            bool isNull(const std::string& colName) const;
+
         private:
             const Resultset *rs_;
             int index_;

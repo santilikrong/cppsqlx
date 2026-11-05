@@ -18,7 +18,6 @@ class Dataset : public Joinable
 public:
     Dataset(std::string name);
 
-    std::string xml_;
     std::string name_;
     std::string schema_;
     std::string catalog_;
@@ -28,6 +27,8 @@ public:
 public:
     Dataset();
     virtual ~Dataset();
+    static std::expected<Dataset, std::string> fromJSON(const json& j);
+
 
     // Accessors
     std::string name() const;
@@ -35,6 +36,7 @@ public:
     std::string catalog() const;
     std::string alias() const;
     std::string toString() const;
+    [[nodiscard]] json toJSON() const;
 
     // Mutators
     void setSchema(std::string schema);

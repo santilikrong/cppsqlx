@@ -3,48 +3,50 @@
 #define CPPSQLX_SQLJOINEXPRESSION_HPP
 
 #include <string>
-#include "cppsqlx/sqlexpression.hpp"
-#include "cppsqlx/sqloperators.hpp"
+#include <cppsqlx/sqlexpression.hpp>
+#include <cppsqlx/sqloperators.hpp>
 
 namespace cppsqlx
 {
 
-class SQLJoinExpression
-{
-public:
-    SQLJoinExpression();
-    explicit SQLJoinExpression(SQLExpression left,
-                               SQLExpression right,
-                               SQLOperator compareOp);
-    explicit SQLJoinExpression(SQLJoinExpression left,
-                               SQLJoinExpression right,
-                               SQLOperator logicalOp);
-    ~SQLJoinExpression() = default;
+    class SQLJoinExpression 
+    {
+    public:
+        SQLJoinExpression();
+        explicit SQLJoinExpression(SQLExpression left,
+                                   SQLExpression right,
+                                   SQLOperator compareOp);
+        explicit SQLJoinExpression(SQLJoinExpression left,
+                                   SQLJoinExpression right,
+                                   SQLOperator logicalOp);
+        ~SQLJoinExpression() = default;
+        static std::expected<SQLJoinExpression, std::string> fromJSON(const json &j);
 
-    std::string toSQL(bool quoted = false) const;
+        std::string toSQL(bool quoted = false) const;
 
-    SQLOperator getOperator() const;
-    std::string getStringOperator() const;
+        json toJSON() const;
 
-    const SQLExpression& leftExpression() const;
-    const SQLExpression& rightExpression() const;
+        SQLOperator getOperator() const;
+        std::string getStringOperator() const;
 
-    void setLeftExpression(const SQLExpression &ex);
-    void setRightExpression(const SQLExpression &ex);
-    void setOperator(SQLOperator op);
+        const SQLExpression &leftExpression() const;
+        const SQLExpression &rightExpression() const;
 
-    static SQLJoinExpression andJoin(const SQLJoinExpression &left,
-                                     const SQLJoinExpression &right);
-    static SQLJoinExpression orJoin(const SQLJoinExpression &left,
-                                    const SQLJoinExpression &right);
+        void setLeftExpression(const SQLExpression &ex);
+        void setRightExpression(const SQLExpression &ex);
+        void setOperator(SQLOperator op);
 
-private:
-    SQLExpression leftExpression_;
-    SQLExpression rightExpression_;
-    SQLOperator operator_;
-    bool isLogicalJoin_;
-    
-};
+        static SQLJoinExpression andJoin(const SQLJoinExpression &left,
+                                         const SQLJoinExpression &right);
+        static SQLJoinExpression orJoin(const SQLJoinExpression &left,
+                                        const SQLJoinExpression &right);
+
+    private:
+        SQLExpression leftExpression_;
+        SQLExpression rightExpression_;
+        SQLOperator operator_;
+        bool isLogicalJoin_;
+    };
 
 } // namespace cppsqlx
 

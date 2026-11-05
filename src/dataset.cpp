@@ -80,6 +80,64 @@ std::string Dataset::toString() const
 }
 
 
+json Dataset::toJSON() const
+{
+    // 1. Initialisation de l'objet principal avec les métadonnées du Dataset
+    json j = json::object({
+        {"name", name_},
+        {"schema", schema_},
+        {"catalog", catalog_}
+    });
 
+    // 2. Création d'un tableau JSON pour accueillir la liste des colonnes
+    json columns_array = json::array();
+
+    // 3. Itération sur votre structure associative columns_
+    for (const auto& c : columns_)
+    {
+        // c.first est la clé, c.second est l'instance de votre classe Column
+        // On appelle la méthode toJSON() de l'objet Column récursivement
+        columns_array.push_back(c.second.toJSON());
+    }
+
+    // 4. Imbrication du tableau de colonnes dans l'objet principal
+    j["columns"] = columns_array;
+
+    return json{ {"dataset", j} };
+}
+
+std::expected<Dataset, std::string> Dataset::fromJSON(const json& j)
+{
+    const json& data = j.contains("dataset") ? j["dataset"] : j;
+
+    try {
+        std::string name = data.at("name").get<std::string>();
+        Dataset ds(name);
+        
+        ds.setSchema(data.value("schema", ""));
+        ds.setCatalog(data.value("catalog", ""));
+        
+        if (data.contains("alias") && !data["alias"].get<std::string>().empty()) {
+            ds.as(data["alias"].get<std::string>());
+        }
+
+        // Reconstruction récursive de la liste des colonnes
+        if (data.contains("columns")) {
+            for (const auto& colJson : data["columns"]) {
+                auto colRes = Column::fromJSON(colJson);
+                if (!colRes) {
+                    return std::unexpected(colRes.error()); // Propage l'erreur de validation
+                }
+                // Réinsertion dans la map à l'index de sa position d'origine
+                ds.columns_.insert_or_assign(colRes->position(), std::move(*colRes));
+            }
+        }
+
+        return ds;
+    }
+    catch (const std::exception& e) {
+        return std::unexpected(std::string("Dataset::fromJSON failed: ") + e.what());
+    }
+}
 
 } // namespace cppsqlx

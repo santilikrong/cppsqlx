@@ -40,6 +40,7 @@
 #include <expected>
 #include <algorithm>
 #include <cctype>
+#include <cppsqlx/json_concepts.hpp> // <-- Inclusion de l'interface JSON de base
 
 namespace cppsqlx {
 
@@ -79,7 +80,7 @@ namespace detail {
  * @class Column
  * @brief Represents a PostgreSQL-compatible column with extended metadata and explicit error handling.
  */
-class Column {
+class Column  {
     friend class DatasetFactory;
 public:
     /**
@@ -104,6 +105,9 @@ public:
                       std::move(defaultValue), size, precision, scale, position);
     }
 
+    // destructeur virtuel propre pour l'héritage
+    ~Column() = default;
+
     // ---------- Accessors ----------
     [[nodiscard]] const std::string& name() const noexcept { return name_; }
     [[nodiscard]] const std::string& type() const noexcept { return sqlType_; }
@@ -114,6 +118,52 @@ public:
     [[nodiscard]] int precision() const noexcept { return precision_; }
     [[nodiscard]] int scale() const noexcept { return scale_; }
     [[nodiscard]] int position() const noexcept { return position_; }
+
+    /**
+     * @brief Implémentation de la sérialisation JSON héritée de JSONRepresentable.
+     */
+    [[nodiscard]] json toJSON() const 
+    {
+        return json{
+            {"column", {
+                {"name", name_},
+                {"type", sqlType_},
+                {"size", size_},
+                {"precision", precision_},
+                {"scale", scale_},
+                {"nullable", isnullable_},
+                {"position", position_}
+            }}
+        };
+    }
+
+
+/**
+ * @brief Reconstitue un objet Column depuis son JSON (Conforme au Concept C++23).
+ */
+static std::expected<Column, std::string> fromJSON(const json& j)
+{
+    // Supporte le format avec ou sans clé racine "column"
+    const json& data = j.contains("column") ? j["column"] : j;
+
+    try {
+        std::string name = data.at("name").get<std::string>();
+        std::string type = data.at("type").get<std::string>();
+        bool nullable = data.value("nullable", true);
+        bool unique = data.value("unique", false);
+        std::string defVal = data.value("default", "");
+        int size = data.value("size", 0);
+        int precision = data.value("precision", 0);
+        int scale = data.value("scale", 0);
+        int position = data.value("position", -1);
+
+        return Column::create(name, type, nullable, unique, defVal, size, precision, scale, position);
+    }
+    catch (const std::exception& e) {
+        return std::unexpected(std::string("Column::fromJSON failed: ") + e.what());
+    }
+}
+
 
     /**
      * @brief Generate SQL fragment for column definition (exception-free).

@@ -38,6 +38,76 @@ std::string SQLJoinExpression::toSQL(bool quoted) const
     return "(" + leftExpression_.toSQL(quoted) + ") " + opStr + " (" + rightExpression_.toSQL(quoted) + ")";
 }
 
+json SQLJoinExpression::toJSON() const
+{
+    return json{
+        {"leftexpression", leftExpression().toJSON()},
+        {"operator", getStringOperator()},
+        {"rightexpression", rightExpression().toJSON()}
+    };
+}
+
+/**
+ * @brief Convertit la représentation textuelle SQL d'un opérateur en sa valeur d'énumération SQLOperator.
+ */
+static SQLOperator parseOperatorString(const std::string& opStr) 
+{
+    // Opérateurs de comparaison
+    if (opStr == "=")   return SQLOperator::Equal;
+    if (opStr == "<>" || opStr == "!=")  return SQLOperator::NotEqual;
+    if (opStr == "<")   return SQLOperator::Less;
+    if (opStr == ">")   return SQLOperator::Greater;
+    if (opStr == "<=")  return SQLOperator::LessOrEqual;
+    if (opStr == ">=")  return SQLOperator::GreaterOrEqual;
+    
+    // Opérateurs logiques de composition
+    if (opStr == "AND") return SQLOperator::And;
+    if (opStr == "OR")  return SQLOperator::Or;
+
+    // Valeur de secours par défaut ou gestion d'erreur selon les préférences de votre bibliothèque
+    return SQLOperator::Equal; 
+}
+
+std::expected<SQLJoinExpression, std::string> SQLJoinExpression::fromJSON(const json& j)
+{
+    const json& data = j.contains("sqljoinexpression") ? j["sqljoinexpression"] : j;
+
+    try {
+        std::string opStr = data.at("operator").get<std::string>();
+        SQLOperator op = parseOperatorString(opStr);
+
+        const json& leftJson = data.at("leftexpression");
+        const json& rightJson = data.at("rightexpression");
+
+        // Détection de l'arborescence : s'agit-il d'expressions SQLJoinExpression imbriquées ?
+        bool isLeftLogical = leftJson.contains("operator") || leftJson.contains("sqljoinexpression");
+        bool isRightLogical = rightJson.contains("operator") || rightJson.contains("sqljoinexpression");
+
+        if (isLeftLogical && isRightLogical) {
+            auto leftRes = SQLJoinExpression::fromJSON(leftJson);
+            auto rightRes = SQLJoinExpression::fromJSON(rightJson);
+
+            if (!leftRes) return std::unexpected(leftRes.error());
+            if (!rightRes) return std::unexpected(rightRes.error());
+
+            return SQLJoinExpression(std::move(*leftRes), std::move(*rightRes), op);
+        } 
+        else {
+            auto leftRes = SQLExpression::fromJSON(leftJson);
+            auto rightRes = SQLExpression::fromJSON(rightJson);
+
+            if (!leftRes) return std::unexpected(leftRes.error());
+            if (!rightRes) return std::unexpected(rightRes.error());
+
+            return SQLJoinExpression(std::move(*leftRes), std::move(*rightRes), op);
+        }
+    }
+    catch (const std::exception& e) {
+        return std::unexpected(std::string("SQLJoinExpression::fromJSON failed: ") + e.what());
+    }
+}
+
+
 SQLOperator SQLJoinExpression::getOperator() const
 {
     return operator_;

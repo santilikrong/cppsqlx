@@ -86,6 +86,33 @@ std::string SQLExpression::toSQL(bool quoted) const {
     return expression_; 
 }
 
+json SQLExpression::toJSON() const
+{
+    return json{
+        {"expression", toSQL(false)},
+        {"alias", alias_}
+    };
+}
+
+std::expected<SQLExpression, std::string> SQLExpression::fromJSON(const json& j)
+{
+    const json& data = j.contains("sqlexpression") ? j["sqlexpression"] : j;
+    
+    try {
+        std::string expr = data.at("expression").get<std::string>();
+        std::string al = data.value("alias", "");
+        
+        SQLExpression sqlExpr(expr);
+        if (!al.empty()) {
+            sqlExpr = sqlExpr.as(al);
+        }
+        return sqlExpr;
+    }
+    catch (const std::exception& e) {
+        return std::unexpected(std::string("SQLExpression::fromJSON failed: ") + e.what());
+    }
+}
+
 // Opérateurs mathématiques et logiques
 SQLExpression SQLExpression::operator+(const SQLExpression& rhs) const { return wrapBinary(rhs, "+"sv); }
 SQLExpression SQLExpression::operator-(const SQLExpression& rhs) const { return wrapBinary(rhs, "-"sv); }

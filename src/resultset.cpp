@@ -261,4 +261,43 @@ bool Resultset::Row::isNull(int col) const {
     return PQgetisnull(rs_->result_.get(), index_, col);
 }
 
+
+
+// -----------------------------------------------------------------
+// IMPLÉMENTATIONS DES SURCHARGES PAR NOM (Resultset::Row)
+// -----------------------------------------------------------------
+
+std::expected<std::string, std::string> Resultset::Row::operator [](const std::string& colName) const {
+    // PQfnumber retourne l'index de la colonne ou -1 si elle n'existe pas
+    int colIndex = PQfnumber(rs_->result_.get(), colName.c_str());
+    if (colIndex == -1) {
+        return std::unexpected("Column '" + colName + "' not found in resultset");
+    }
+    return (*this)[colIndex]; // Appelle la surcharge par index existante
+}
+
+std::expected<int, std::string> Resultset::Row::getInt(const std::string& colName) const {
+    int colIndex = PQfnumber(rs_->result_.get(), colName.c_str());
+    if (colIndex == -1) {
+        return std::unexpected("Column '" + colName + "' not found in resultset");
+    }
+    return getInt(colIndex);
+}
+
+std::expected<double, std::string> Resultset::Row::getDouble(const std::string& colName) const {
+    int colIndex = PQfnumber(rs_->result_.get(), colName.c_str());
+    if (colIndex == -1) {
+        return std::unexpected("Column '" + colName + "' not found in resultset");
+    }
+    return getDouble(colIndex);
+}
+
+bool Resultset::Row::isNull(const std::string& colName) const {
+    int colIndex = PQfnumber(rs_->result_.get(), colName.c_str());
+    if (colIndex == -1) {
+        return true; // Considéré comme null/inexistant ou gérez selon votre politique
+    }
+    return isNull(colIndex);
+}
+
 } // namespace cppsqlx

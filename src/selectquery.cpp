@@ -25,6 +25,7 @@ SOFTWARE.
 
 #include "cppsqlx/selectquery.hpp"
 #include "cppsqlx/cte.hpp"
+#include <cppsqlx/joinable_factory.hpp>
 
 #include <sstream>
 #include <stdexcept>
@@ -242,34 +243,44 @@ namespace cppsqlx
         return "(" + toSQL() + ")";
     }
 
-    std::string SelectQuery::toSQL() const
+    // 🟢 AJOUT : Le helper interne récursif qui collecte les CTEs à plat
+    std::string SelectQuery::toSQLInternal(std::vector<CollectedCTE>& collectedCtes) const
     {
-        std::ostringstream sql;
-
-        // Fonction d'aide locale pour appliquer ou non les guillemets
-        auto formatIdent = [this](const std::string &ident) -> std::string
+        // 1. D'abord, collecter les CTEs locaux définis sur cette instance précise
+        for (const auto &cte : ctes_)
         {
+            // Vérifier les doublons pour éviter de redéclarer le même CTE
+            auto it = std::find_if(collectedCtes.begin(), collectedCtes.end(), 
+                [&cte](const CollectedCTE& c) { return c.name == cte.name(); });
+                
+            if (it == collectedCtes.end())
+            {
+                // Appel récursif profond : la sous-requête du CTE peut elle-même contenir des CTEs !
+                std::string subQuerySql = cte.query().toSQLInternal(collectedCtes);
+                collectedCtes.push_back({cte.name(), subQuerySql});
+            }
+        }
+
+        // 2. Ensuite, collecter récursivement les CTEs cachés dans les clauses de JOIN
+        for (const auto &j : joins_)
+        {
+            if (j.target)
+            {
+                // Si la cible du JOIN est une sous-requête (SelectQuery)
+                if (auto subquery = std::dynamic_pointer_cast<SelectQuery>(j.target))
+                {
+                    subquery->toSQLInternal(collectedCtes);
+                }
+            }
+        }
+
+        // 3. Générer le corps de la requête SELECT courante (sans son propre WITH local)
+        std::ostringstream sql;
+        
+        auto formatIdent = [this](const std::string &ident) -> std::string {
             return quoted_ ? SQLExpression::quoteIdentifier(ident) : ident;
         };
 
-        // WITH
-        if (!ctes_.empty())
-        {
-            sql << "WITH ";
-            for (size_t i = 0; i < ctes_.size(); ++i)
-            {
-                // Utilisation du flag pour le nom du CTE
-                sql << formatIdent(ctes_[i].name())
-                    << " AS (" << ctes_[i].query().toSQL() << ")";
-                if (i + 1 < ctes_.size())
-                {
-                    sql << ", ";
-                }
-            }
-            sql << " ";
-        }
-
-        // SELECT
         sql << "SELECT " << (selectionSet_.empty() ? "*" : selectionSet_.toSQL(quoted_));
 
         if (!table_.empty() || from_)
@@ -279,24 +290,30 @@ namespace cppsqlx
                 throw std::runtime_error("No FROM source specified nor selectionset");
             }
 
-            // FROM
             sql << " FROM ";
             if (from_)
             {
+                // Si le FROM est lui-même une sous-requête, collecter ses CTEs
+                if (auto subFrom = std::dynamic_pointer_cast<SelectQuery>(from_))
+                {
+                    subFrom->toSQLInternal(collectedCtes);
+                }
                 sql << from_->joinidentifier();
                 if (alias_ && !alias_->empty())
                 {
-                    // Utilisation du flag pour l'alias du FROM
                     sql << " AS " << formatIdent(*alias_);
                 }
             }
             else
             {
-                // Utilisation du flag pour le nom de la table
                 sql << formatIdent(table_);
+                if (alias_ && !alias_->empty())
+                {
+                    sql << " AS " << formatIdent(*alias_);
+                }
             }
 
-            // JOINs
+            // Clause JOINs
             for (const auto &j : joins_)
             {
                 sql << " " << j.joinType << " ";
@@ -306,13 +323,11 @@ namespace cppsqlx
                     sql << j.target->joinidentifier();
                     if (j.alias && !j.alias->empty())
                     {
-                        // Utilisation du flag pour l'alias du JOIN physique
                         sql << " AS " << formatIdent(*j.alias);
                     }
                 }
                 else if (j.alias)
                 {
-                    // Utilisation du flag pour le nom du CTE joint
                     sql << formatIdent(*j.alias);
                 }
 
@@ -322,28 +337,19 @@ namespace cppsqlx
                 }
             }
 
-            if (where_)
-            {
-                sql << " WHERE " << where_->toSQL();
-            }
-
+            if (where_)       sql << " WHERE " << where_->toSQL();
+            
             if (!groupBy_.empty())
             {
                 sql << " GROUP BY ";
                 for (size_t i = 0; i < groupBy_.size(); ++i)
                 {
                     sql << groupBy_[i].toSQL();
-                    if (i + 1 < groupBy_.size())
-                    {
-                        sql << ", ";
-                    }
+                    if (i + 1 < groupBy_.size()) sql << ", ";
                 }
             }
 
-            if (having_)
-            {
-                sql << " HAVING " << having_->toSQL();
-            }
+            if (having_)      sql << " HAVING " << having_->toSQL();
 
             if (!orderBy_.empty())
             {
@@ -352,25 +358,299 @@ namespace cppsqlx
                 {
                     sql << orderBy_[i].expr.toSQL()
                         << (orderBy_[i].dir == SortDirection::ASC ? " ASC" : " DESC");
-                    if (i + 1 < orderBy_.size())
-                    {
-                        sql << ", ";
-                    }
+                    if (i + 1 < orderBy_.size()) sql << ", ";
                 }
             }
 
-            if (limit_)
-            {
-                sql << " LIMIT " << *limit_;
-            }
-
-            if (offset_)
-            {
-                sql << " OFFSET " << *offset_;
-            }
+            if (limit_)       sql << " LIMIT " << *limit_;
+            if (offset_)      sql << " OFFSET " << *offset_;
         }
 
         return sql.str();
+    }
+
+    // 🟢 CORRECTION : La méthode publique devient le point d'entrée unique qui injecte le WITH global
+    std::string SelectQuery::toSQL() const
+    {
+        std::vector<CollectedCTE> collectedCtes;
+        
+        // 1. Générer le corps principal et collecter tous les CTEs à plat
+        std::string mainBody = toSQLInternal(collectedCtes);
+        
+        std::ostringstream finalSql;
+        auto formatIdent = [this](const std::string &ident) -> std::string {
+            return quoted_ ? SQLExpression::quoteIdentifier(ident) : ident;
+        };
+
+        // 2. Émettre la clause WITH unique si des CTEs ont été collectés
+        if (!collectedCtes.empty())
+        {
+            finalSql << "WITH ";
+            for (size_t i = 0; i < collectedCtes.size(); ++i)
+            {
+                finalSql << formatIdent(collectedCtes[i].name) << " AS (" << collectedCtes[i].sql << ")";
+                if (i + 1 < collectedCtes.size())
+                {
+                    finalSql << ", ";
+                }
+            }
+            finalSql << " ";
+        }
+
+        // 3. Concaténer la requête principale
+        finalSql << mainBody;
+        return finalSql.str();
+    }
+
+
+    json SelectQuery::toJSON() const
+    {
+
+        json j;
+
+        // 1. Informations de la Table principale et du Schéma
+        if (schema_.has_value())
+        {
+            j["schema"] = schema_.value();
+        }
+        j["table"] = table_;
+        if (alias_.has_value())
+        {
+            j["alias"] = alias_.value();
+        }
+
+        // 2. Clause SELECT (utilise le toJSON de SQLSelectionSet)
+        j["select"] = selectionSet_.toJSON();
+
+        // 3. Clause WHERE (si présente)
+        if (where_.has_value())
+        {
+            j["where"] = where_.value().toJSON();
+        }
+
+        // 4. Clause JOINS
+        if (!joins_.empty())
+        {
+            json jsonJoins = json::array();
+            for (const auto &item : joins_)
+            {
+                json itemJson;
+                itemJson["type"] = item.joinType;
+                if (item.alias.has_value())
+                {
+                    itemJson["alias"] = item.alias.value();
+                }
+                if (item.on.has_value())
+                {
+                    itemJson["on"] = item.on.value().toJSON();
+                }
+                // Note: Si target possède un moyen d'être sérialisé, vous pouvez l'ajouter ici
+                itemJson["target_identifier"] = item.target ? item.target->joinidentifier() : "";
+                jsonJoins.push_back(itemJson);
+            }
+            j["joins"] = jsonJoins;
+        }
+
+        // 5. Clause GROUP BY
+        if (!groupBy_.empty())
+        {
+            json jsonGroupBy = json::array();
+            for (const auto &expr : groupBy_)
+            {
+                jsonGroupBy.push_back(expr.toJSON());
+            }
+            j["groupby"] = jsonGroupBy;
+        }
+
+        // 6. Clause HAVING
+        if (having_.has_value())
+        {
+            j["having"] = having_.value().toJSON();
+        }
+
+        // 7. Clause ORDER BY
+        if (!orderBy_.empty())
+        {
+            json jsonOrderBy = json::array();
+            for (const auto &order : orderBy_)
+            {
+                json orderJson;
+                orderJson["expression"] = order.expr.toJSON();
+                orderJson["direction"] = (order.dir == SortDirection::ASC) ? "ASC" : "DESC";
+                jsonOrderBy.push_back(orderJson);
+            }
+            j["orderby"] = jsonOrderBy;
+        }
+
+        // 8. LIMIT & OFFSET
+        if (limit_.has_value())
+        {
+            j["limit"] = limit_.value();
+        }
+        if (offset_.has_value())
+        {
+            j["offset"] = offset_.value();
+        }
+
+        // 9. CTEs (Common Table Expressions)
+        if (!ctes_.empty())
+        {
+            json jsonCtes = json::array();
+            for (const auto &cte : ctes_)
+            {
+                jsonCtes.push_back(cte.toJSON());
+            }
+            j["ctes"] = jsonCtes;
+        }
+
+        // Enrobage dans un objet racine "selectquery" pour la cohérence
+        return json{{"selectquery", j}};
+    }
+
+    std::expected<SelectQuery, std::string> SelectQuery::fromJSON(const json &j)
+    {
+        // Supporte le format avec ou sans clé racine "selectquery"
+        const json &data = j.contains("selectquery") ? j["selectquery"] : j;
+
+        try
+        {
+            std::string table = data.at("table").get<std::string>();
+            SelectQuery query;
+
+            // 1. Schéma et Table principale
+            if (data.contains("schema") && !data["schema"].get<std::string>().empty())
+            {
+                query.schema_ = data["schema"].get<std::string>();
+            }
+            query.table_ = table;
+
+            if (data.contains("alias") && !data["alias"].get<std::string>().empty())
+            {
+                query.alias_ = data["alias"].get<std::string>();
+            }
+
+            // 2. Clause SELECT (utilise SQLSelectionSet::fromJSON)
+            if (data.contains("select"))
+            {
+                auto selRes = SQLSelectionSet::fromJSON(data["select"]);
+                if (!selRes)
+                    return std::unexpected("SelectQuery::fromJSON -> " + selRes.error());
+                query.selectionSet_ = std::move(*selRes);
+            }
+
+            // 3. Clause WHERE
+            if (data.contains("where") && !data["where"].is_null())
+            {
+                auto whereRes = SQLExpression::fromJSON(data["where"]);
+                if (!whereRes)
+                    return std::unexpected("SelectQuery::fromJSON -> " + whereRes.error());
+                query.where_ = std::move(*whereRes);
+            }
+
+            // 4. Clause JOINS
+            if (data.contains("joins") && data["joins"].is_array())
+            {
+                for (const auto &joinJson : data["joins"])
+                {
+                    JoinItem item;
+                    item.joinType = joinJson.at("type").get<std::string>();
+
+                    if (joinJson.contains("alias") && !joinJson["alias"].is_null())
+                    {
+                        item.alias = joinJson["alias"].get<std::string>();
+                    }
+
+                    if (joinJson.contains("on") && !joinJson["on"].is_null())
+                    {
+                        auto onRes = SQLExpression::fromJSON(joinJson["on"]);
+                        if (!onRes)
+                            return std::unexpected("SelectQuery::fromJSON (join ON) -> " + onRes.error());
+                        item.on = std::move(*onRes);
+                    }
+
+                    // 💡 Reconstruction polymorphe de la cible du JOIN via la Factory
+                    if (joinJson.contains("target") && !joinJson["target"].is_null())
+                    {
+                        auto targetRes = JoinableFactory::fromJSON(joinJson["target"]);
+                        if (!targetRes)
+                            return std::unexpected("SelectQuery::fromJSON (join target) -> " + targetRes.error());
+                        item.target = std::move(*targetRes);
+                    }
+                    else if (joinJson.contains("alias"))
+                    {
+                        // Fallback si seule l'identité textuelle est présente
+                        // item.target = std::make_shared<Dataset>(joinJson["alias"].get<std::string>());
+                    }
+
+                    query.joins_.push_back(std::move(item));
+                }
+            }
+
+            // 5. Clause GROUP BY
+            if (data.contains("groupby") && data["groupby"].is_array())
+            {
+                for (const auto &gbJson : data["groupby"])
+                {
+                    auto gbRes = SQLExpression::fromJSON(gbJson);
+                    if (!gbRes)
+                        return std::unexpected("SelectQuery::fromJSON (groupby) -> " + gbRes.error());
+                    query.groupBy_.push_back(std::move(*gbRes));
+                }
+            }
+
+            // 6. Clause HAVING
+            if (data.contains("having") && !data["having"].is_null())
+            {
+                auto havingRes = SQLExpression::fromJSON(data["having"]);
+                if (!havingRes)
+                    return std::unexpected("SelectQuery::fromJSON (having) -> " + havingRes.error());
+                query.having_ = std::move(*havingRes);
+            }
+
+            // 7. Clause ORDER BY
+            if (data.contains("orderby") && data["orderby"].is_array())
+            {
+                for (const auto &obJson : data["orderby"])
+                {
+                    auto exprRes = SQLExpression::fromJSON(obJson.at("expression"));
+                    if (!exprRes)
+                        return std::unexpected("SelectQuery::fromJSON (orderby expr) -> " + exprRes.error());
+
+                    std::string dirStr = obJson.at("direction").get<std::string>();
+                    SortDirection dir = (dirStr == "DESC") ? SortDirection::DESC : SortDirection::ASC;
+
+                    query.orderBy_.emplace_back(std::move(*exprRes), dir);
+                }
+            }
+
+            // 8. LIMIT & OFFSET
+            if (data.contains("limit") && !data["limit"].is_null())
+            {
+                query.limit_ = data["limit"].get<size_t>();
+            }
+            if (data.contains("offset") && !data["offset"].is_null())
+            {
+                query.offset_ = data["offset"].get<size_t>();
+            }
+
+            // 9. CTEs (Common Table Expressions)
+            if (data.contains("ctes") && data["ctes"].is_array())
+            {
+                for (const auto &cteJson : data["ctes"])
+                {
+                    auto cteRes = CTE::fromJSON(cteJson);
+                    if (!cteRes)
+                        return std::unexpected("SelectQuery::fromJSON (cte) -> " + cteRes.error());
+                    query.ctes_.push_back(std::move(*cteRes));
+                }
+            }
+
+            return query;
+        }
+        catch (const std::exception &e)
+        {
+            return std::unexpected(std::string("SelectQuery::fromJSON failed: ") + e.what());
+        }
     }
 
     Resultset SelectQuery::run(std::shared_ptr<Connection> /*connection*/)

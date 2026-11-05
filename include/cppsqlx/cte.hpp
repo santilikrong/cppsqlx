@@ -4,32 +4,41 @@
 
 #include <string>
 #include <memory>
+#include <cppsqlx/json_concepts.hpp> // 💡 Ajout de l'en-tête
 
-namespace cppsqlx {
+namespace cppsqlx
+{
 
-class SelectQuery; // Forward declaration
+    class SelectQuery; // Forward declaration
 
-class CTE {
-public:
-    CTE(std::string name, std::shared_ptr<SelectQuery> query)
-        : name_(std::move(name)), query_(std::move(query)) {}
+    // 💡 Héritage public de JSONRepresentable
+    class CTE
+    {
+    public:
+        CTE(std::string name, std::shared_ptr<SelectQuery> query)
+            : name_(std::move(name)), query_(std::move(query)) {}
 
-    CTE(const CTE&) = default;
-    CTE& operator=(const CTE&) = default;
-    CTE(CTE&&) noexcept = default;
-    CTE& operator=(CTE&&) noexcept = default;
+        CTE(const CTE &) = default;
+        static std::expected<cppsqlx::CTE, std::string> fromJSON(const json &j);
 
-    ~CTE();
+        CTE &operator=(const CTE &) = default;
+        CTE(CTE &&) noexcept = default;
+        CTE &operator=(CTE &&) noexcept = default;
 
-    std::string toSQL() const; // Implemented in .cpp
+        ~CTE();
 
-    const std::string& name() const { return name_; }
-    const SelectQuery& query() const { return *query_; }
+        std::string toSQL() const;
 
-private:
-    std::string name_;
-    std::shared_ptr<SelectQuery> query_;
-};
+        // 💡 Déclaration de toJSON
+        json toJSON() const;
+
+        const std::string &name() const { return name_; }
+        const SelectQuery &query() const { return *query_; }
+
+    private:
+        std::string name_;
+        std::shared_ptr<SelectQuery> query_;
+    };
 
 } // namespace cppsqlx
 

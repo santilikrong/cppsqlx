@@ -27,9 +27,11 @@ SOFTWARE.
 
 #include <string>
 #include <concepts>
-#include <type_traits> // Ajout indispensable pour std::decay_t et std::is_convertible_v
 
 namespace cppsqlx {
+
+// Déclaration anticipée si nécessaire, ou inclure votre header d'expression
+class SQLExpression; 
 
 /**
  * @brief Concept C++20 définissant ce qui peut être passé à la clause SELECT.
@@ -42,4 +44,3 @@ concept Selectable = requires(T a) {
 } // namespace cppsqlx
 
 #endif // CPPSQLX_SELECTABLE_H
-

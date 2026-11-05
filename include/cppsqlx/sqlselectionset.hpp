@@ -30,58 +30,75 @@ SOFTWARE.
 #include <string>
 #include <sstream>
 
-namespace cppsqlx {
-
-/**
- * @class SQLSelectionSet
- * @brief Represents a set of SQL expressions for the SELECT clause.
- */
-class SQLSelectionSet {
-private:
-    std::vector<SQLExpression> selections_; ///< Container for SQL expressions.
-
-public:
-    SQLSelectionSet() = default;
-
-    // Add an SQLExpression
-    void add(const SQLExpression& expr) {
-        selections_.push_back(expr);
-    }
-
-    // Add a raw SQL string
-    void add(const std::string& rawExpr) {
-        selections_.emplace_back(rawExpr);
-    }
+namespace cppsqlx
+{
 
     /**
-     * @brief Generate SQL string for the selection set.
-     * Uses alias-aware rendering for each expression.
-     * Example: col1 AS "alias1", COUNT(*) AS "total"
+     * @class SQLSelectionSet
+     * @brief Represents a set of SQL expressions for the SELECT clause.
      */
-    /**
-     * @brief Generate SQL string for the selection set.
-     * Uses alias-aware rendering for each expression.
-     * Example: col1 AS "alias1", COUNT(*) AS "total"
-     */
-    std::string toSQL(bool quoted = true) const { // 💡 Ajout du paramètre quoted
-        std::ostringstream oss;
-        for (size_t i = 0; i < selections_.size(); ++i) {
-            // 💡 On passe le flag à l'expression (voir l'étape suivante si la signature diffère)
-            oss << selections_[i].toSQLWithAlias(quoted); 
-            if (i < selections_.size() - 1) {
-                oss << ", ";
-            }
+    class SQLSelectionSet
+    {
+    private:
+        std::vector<SQLExpression> selections_; ///< Container for SQL expressions.
+
+    public:
+        SQLSelectionSet() = default;
+        static std::expected<SQLSelectionSet, std::string> fromJSON(const json &j);
+
+        // Add an SQLExpression
+        void add(const SQLExpression &expr)
+        {
+            selections_.push_back(expr);
         }
-        return oss.str();
-    }
 
+        // Add a raw SQL string
+        void add(const std::string &rawExpr)
+        {
+            selections_.emplace_back(rawExpr);
+        }
 
-    size_t size() const { return selections_.size(); }
-    bool empty() const { return selections_.empty(); }
+        /**
+         * @brief Generate SQL string for the selection set.
+         * Uses alias-aware rendering for each expression.
+         * Example: col1 AS "alias1", COUNT(*) AS "total"
+         */
+        /**
+         * @brief Generate SQL string for the selection set.
+         * Uses alias-aware rendering for each expression.
+         * Example: col1 AS "alias1", COUNT(*) AS "total"
+         */
+        std::string toSQL(bool quoted = true) const
+        { // Ajout du paramètre quoted
+            std::ostringstream oss;
+            for (size_t i = 0; i < selections_.size(); ++i)
+            {
+                // On passe le flag à l'expression (voir l'étape suivante si la signature diffère)
+                oss << selections_[i].toSQLWithAlias(quoted);
+                if (i < selections_.size() - 1)
+                {
+                    oss << ", ";
+                }
+            }
+            return oss.str();
+        }
 
-    // Provide access to underlying expressions for iteration
-    const std::vector<SQLExpression>& expressions() const { return selections_; }
-};
+        [[nodiscard]] json toJSON() const
+        {
+            json j = json::array();
+            for (const auto &sqex : selections_)
+            {
+                j.push_back(sqex.toJSON());
+            }
+            return j;
+        };
+
+        size_t size() const { return selections_.size(); }
+        bool empty() const { return selections_.empty(); }
+
+        // Provide access to underlying expressions for iteration
+        const std::vector<SQLExpression> &expressions() const { return selections_; }
+    };
 
 } // namespace cppsqlx
 

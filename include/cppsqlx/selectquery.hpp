@@ -33,17 +33,17 @@ SOFTWARE.
 #include <memory>
 #include <concepts>
 
-#include "cppsqlx/sqlquery.hpp"
-#include "cppsqlx/sqlexpression.hpp"
-#include "cppsqlx/sqlselectionset.hpp"
-#include "cppsqlx/join.hpp"
-#include "cppsqlx/cte.hpp"
-#include "cppsqlx/resultset.hpp"
-#include "cppsqlx/connection.hpp"
-#include "cppsqlx/statement.hpp"
-#include "cppsqlx/joinable.hpp"
-#include "cppsqlx/dataset.hpp"
-#include "cppsqlx/sqljoinexpression.hpp"
+#include <cppsqlx/sqlquery.hpp>
+#include <cppsqlx/sqlexpression.hpp>
+#include <cppsqlx/sqlselectionset.hpp>
+#include <cppsqlx/join.hpp>
+#include <cppsqlx/cte.hpp>
+#include <cppsqlx/resultset.hpp>
+#include <cppsqlx/connection.hpp>
+#include <cppsqlx/statement.hpp>
+#include <cppsqlx/joinable.hpp>
+#include <cppsqlx/dataset.hpp>
+#include <cppsqlx/sqljoinexpression.hpp>
 
 namespace cppsqlx
 {
@@ -96,6 +96,8 @@ namespace cppsqlx
     {
     public:
         SelectQuery() noexcept = default;
+        // À insérer dans la section public de la classe SelectQuery dans selectquery.hpp :
+        static std::expected<SelectQuery, std::string> fromJSON(const json &j);
 
         explicit SelectQuery(std::string_view tablename)
         {
@@ -202,6 +204,7 @@ namespace cppsqlx
         SelectQuery &offset(size_t n);
 
         [[nodiscard]] std::string toSQL() const override;
+        [[nodiscard]] json toJSON() const;
         Resultset run(std::shared_ptr<Connection> connection) override;
         [[nodiscard]] std::string joinidentifier() const override;
 
@@ -231,6 +234,18 @@ namespace cppsqlx
         std::vector<Order> orderBy_;
         std::optional<size_t> limit_;
         std::optional<size_t> offset_;
+
+private:
+    // Structure interne pour collecter à plat les CTEs durant la récursion
+    struct CollectedCTE {
+        std::string name;
+        std::string sql;
+    };
+
+    // Helper interne récursif pour générer le corps SQL et collecter les CTEs
+    std::string toSQLInternal(std::vector<CollectedCTE>& collectedCtes) const;
+
+
 
         // Helpers for SELECT
         void addSelection(const SQLExpression &expr);

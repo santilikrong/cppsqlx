@@ -23,6 +23,7 @@ SOFTWARE.
 */
 
 #include <iostream>
+#include <fstream> 
 #include "cppsqlx/logger.hpp"
 #include <boost/program_options.hpp>
 #include "cppsqlx/connection.hpp"
@@ -38,6 +39,7 @@ SOFTWARE.
 #include "cppsqlx/dataset.hpp"
 #include "cppsqlx/sqljoinexpressionbuilder.hpp"
 #include "cppsqlx/sqlselectbuilder.hpp"
+#include "cppsqlx/json_concepts.hpp"
 
 namespace po = boost::program_options;
 
@@ -90,25 +92,91 @@ int main(int argc, char *argv[])
     if (conn.isConnected())
     {
         LOG4CXX_INFO(logger, "Connected to PostgreSQL successfully");
-        auto ds1 = cppsqlx::DatasetFactory().createFromDatabase(conn, "t1");
-        auto ds2 = cppsqlx::DatasetFactory().createFromDatabase(conn, "t2");
+        auto dsemp = cppsqlx::DatasetFactory().createFromDatabase(conn, "t_employes");
+        auto dsag = cppsqlx::DatasetFactory().createFromDatabase(conn, "t_agences");
+        auto dsreg = cppsqlx::DatasetFactory().createFromDatabase(conn, "t_regions");
 
-        // std::cout << ds1->toString() << "\n";
+        if (dsreg) 
+        {
+            std::cout << "--- Représentation JSON de dsreg (Metadata & Columns) ---" << std::endl;
+            std::cout << cppsqlx::io::dump(dsreg.value(),4) << std::endl;
+            std::cout << "--------------------------------------------------------" << std::endl;
+        }
+        else 
+        {
+            LOG4CXX_ERROR(logger, "Impossible de générer le JSON : dsreg est invalide -> " + dsreg.error());
+        }
 
-        auto q1 = cppsqlx::SelectQuery()
-                      .select("c11"_col.as("c11"), "c12"_col.as("c12"), "c13"_col.as("c13"))
-                      .from(ds1.value());
+        auto q_ag = cppsqlx::SelectQuery()
+                      .select("id"_col.as("id"), "nom"_col.as("nom"), "id_reg"_col.as("id_reg"))
+                      .from(dsag.value());
 
-        auto q2 = cppsqlx::SelectQuery()
-                      .select("c21"_col.as("c21"), "c22"_col.as("c22"))
-                      .from(ds2.value());
+auto q_emp = cppsqlx::SelectQuery()
+              .with(CTE("ag", std::make_shared<SelectQuery>(q_ag)))
+              .select("emp.id"_col.as("id"), "emp.matricule"_col.as("matricule"), "ag.nom"_col.as("agence"), "ag.id_reg"_col.as("id_reg"), "emp.id_ag"_col.as("id_ag"))
+              .from(dsemp.value().as("emp"))
+              .join("INNER JOIN", std::make_shared<SelectQuery>(q_ag), "ag", // 💡 Utilise q_ag
+                       JEX().left("emp.id_ag"_col).right("ag.id"_col).equalOp());
+
+
+
+        auto q_reg = cppsqlx::SelectQuery()
+                      .select("id"_col.as("id"), "nom"_col.as("nom"))
+                      .from(dsreg.value());
 
         auto query = SelectQuery()
-                         .with(CTE("q1", std::make_shared<SelectQuery>(q1)))
-                         .select("q1.c12"_col.as("c1"), "q1.c13"_col.as("c3"), "q2.c22"_col.as("c2"))
-                         .from("q1")
-                         .join("INNER JOIN", std::make_shared<SelectQuery>(q2), "q2",
-                               JEX().left("c11"_col).right("c21"_col).equalOp());
+                         .with(CTE("emp", std::make_shared<SelectQuery>(q_emp)))
+                         .select("emp.matricule"_col.as("matricule"), "emp.agence"_col.as("agence"), "reg.nom"_col.as("region"))
+                         .from(dsreg.value().as("reg"))
+                         .join("INNER JOIN", std::make_shared<SelectQuery>(q_emp), "emp",
+                               JEX().left("emp.id_reg"_col).right("reg.id"_col).equalOp())
+                               ; 
+
+
+
+        std::cout << "--- Représentation JSON de query ---" << std::endl;
+        std::string serializedQuery = cppsqlx::io::dump(query, 4);
+        std::cout << serializedQuery << std::endl;
+        std::cout << "------------------------------------" << std::endl;
+
+        // 🟢 SAUVEGARDE DU JSON DANS UN FICCHIER
+        std::string filename = "query_output.json";
+        std::ofstream jsonFile(filename);
+        if (jsonFile.is_open())
+        {
+            jsonFile << serializedQuery;
+            jsonFile.close();
+            LOG4CXX_INFO(logger, "Représentation JSON sauvegardée avec succès dans " + filename);
+        }
+        else
+        {
+            LOG4CXX_ERROR(logger, "Impossible d'ouvrir le fichier " + filename + " pour écriture");
+        }
+
+        // 🟢 RECONSTITUTION DE L'OBJET DEPUIS LE JSON (Désérialisation)
+        LOG4CXX_INFO(logger, "Tentative de reconstruction de la requête depuis sa chaîne JSON...");
+        
+        // On parse la chaîne de caractères brute en objet nlohmann::json
+        json parsedJson = json::parse(serializedQuery);
+        
+        // Appel de la méthode usine statique protégée par std::expected
+        auto query_loaded_res = cppsqlx::SelectQuery::fromJSON(parsedJson);
+
+        if (query_loaded_res)
+        {
+            // Instanciation de query_loaded par déplacement
+            cppsqlx::SelectQuery query_loaded = std::move(*query_loaded_res);
+            LOG4CXX_INFO(logger, "Objet query_loaded instancié avec succès !");
+
+            std::cout << "--- Requête SQL issue de l'objet reconstruit (query_loaded) ---" << std::endl;
+            std::cout << query_loaded.toSQL() << std::endl;
+            std::cout << "----------------------------------------------------------------" << std::endl;
+        }
+        else
+        {
+            // En cas d'erreur de structure JSON, on log l'erreur explicite sans planter
+            LOG4CXX_ERROR(logger, "Échec de la désérialisation de query_loaded : " + query_loaded_res.error());
+        }
 
         std::cout << query.toSQL() << "\n";
 
@@ -118,18 +186,7 @@ int main(int argc, char *argv[])
         std::cout << "Number of cols : " << res->columns() << std::endl;
         std::cout << "Number of rows : " << res->rows() << std::endl;
 
-        //res->print();
         std::cout << res.value() << std::endl ;
-
-        /*for (auto row : *res)
-        {
-            for (int i = 0; i < numcols; i++)
-            {
-                auto value = row[i];
-                std::cout << *value << ";";
-            };
-            std::cout << std::endl;
-        }*/
 
 
         if (auto res = conn.close(); !res)

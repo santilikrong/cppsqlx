@@ -1,0 +1,56 @@
+#ifndef CPPSQLX_WORKFLOW_HPP
+#define CPPSQLX_WORKFLOW_HPP
+
+#include <iostream>
+#include <thread>
+#include <string>
+#include <list>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <condition_variable>
+#include <expected>
+#include <cppsqlx/json_concepts.hpp>
+#include <cppsqlx/connectioncontext.hpp>
+#include <cppsqlx/job.hpp>
+#include <cppsqlx/job_result.hpp>
+
+namespace cppsqlx
+{
+
+class Workflow
+{
+private:
+    std::string name_;
+    ConnectionContext context_;
+    std::list<std::shared_ptr<Job>> jobs_;
+
+public:
+    // ---------- Constructors & Destructor ----------
+    explicit Workflow(std::string name) : name_(std::move(name)) {}
+    ~Workflow() = default;
+
+    // ---------- Accessors ----------
+    const std::string& name() const noexcept { return name_; }
+    const ConnectionContext& context() const noexcept { return context_; }
+    const std::list<std::shared_ptr<Job>>& jobs() const noexcept { return jobs_; }
+
+    // ---------- Mutators & Modifiers ----------
+    void setContext(ConnectionContext context) { context_ = std::move(context); }
+    void addJob(std::shared_ptr<Job> job) { jobs_.push_back(std::move(job)); }
+
+    // ---------- Execution Engine ----------
+    /**
+     * @brief Lance l'orchestration asynchrone et multi-threadée du pipeline de données.
+     * Évalue dynamiquement le graphe de dépendances au fil de l'eau.
+     */
+    void run(std::shared_ptr<Connection> connection);
+
+    // ---------- JSON Concepts Contract ----------
+    [[nodiscard]] json toJSON() const;
+    static std::expected<Workflow, std::string> fromJSON(const json& j);
+};
+
+} // namespace cppsqlx
+
+#endif // CPPSQLX_WORKFLOW_HPP
