@@ -1,0 +1,10 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/santili/projects/cpp/cppsqlx/build/cmake_install.cmake",
+		"/home/santili/projects/cpp/cppsqlx/build/src/cmake_install.cmake",
+		"/home/santili/projects/cpp/cppsqlx/build/_deps/json-build/cmake_install.cmake",
+		"/home/santili/projects/cpp/cppsqlx/build/examples/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

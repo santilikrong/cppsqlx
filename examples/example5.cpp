@@ -37,14 +37,14 @@ int main()
     monPipeline.addJob(jobTransform);
     monPipeline.addJob(jobLoad);
 
-    // 5. 🟢 CORRECTION : Instanciation de l'objet Connection requis par la signature
+
     // Même si la chaîne est vide, l'objet existe en mémoire pour valider le pointeur du Workflow.
     cppsqlx::Connection conn(""); 
 
     // Lancement de l'orchestration orientée données
     std::cout << "--- Démarrage de l'orchestration multi-dépendances ---" << std::endl;
     auto connPtr = std::shared_ptr<cppsqlx::Connection>(&conn, [](cppsqlx::Connection*){/* no-op */});
-    monPipeline.run(connPtr);
+    //monPipeline.run(connPtr);
     std::cout << "--- Fin de l'exécution du workflow ---" << std::endl;
 
     return 0;

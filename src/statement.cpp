@@ -52,15 +52,22 @@ std::expected<Resultset, std::string> Statement::execute(const std::string& sql)
     if (!conn_) return std::unexpected("Statement error: No active database connection.");
 
     PGresult* res = PQexec(conn_, sql.c_str());
-    if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+    ExecStatusType status = PQresultStatus(res);
+
+    // 🟢 CORRECTION : On accepte indifféremment les résultats de tuples (SELECT, CTAS) 
+    // et les acquittements de commandes réussies (UPDATE, INSERT, DELETE)
+    if (status != PGRES_TUPLES_OK && status != PGRES_COMMAND_OK) {
         std::string err = PQerrorMessage(conn_);
         PQclear(res);
         return std::unexpected(err);
     }
 
-    // Instanciation de votre Resultset (à adapter selon le constructeur de votre Resultset)
+    // Instanciation de votre Resultset. 
+    // Note : Votre classe Resultset doit gérer en interne un PGresult* dont le statut est PGRES_COMMAND_OK 
+    // (par exemple en retournant 0 ligne pour rows() et colonnes()).
     return Resultset(res); 
 }
+
 
 std::expected<void, std::string> Statement::prepareStatement(const std::string& stmtName, const std::string& sql, int paramCount) {
     if (!conn_) return std::unexpected("Statement error: No active database connection.");

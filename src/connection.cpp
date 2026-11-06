@@ -23,7 +23,7 @@ SOFTWARE.
 */
 
 #include "cppsqlx/connection.hpp"
-#include "cppsqlx/statement.hpp" // 🟢 Crucial : Placé ici, il rend le type Statement COMPLET pour tout le fichier
+#include "cppsqlx/statement.hpp"
 #include <libpq-fe.h> 
 #include <utility>
 
@@ -57,9 +57,7 @@ Connection::Connection(std::string connect_string)
       conn_(nullptr) {
 }
 
-// 🟢 Correction : Déclaré explicitement ici. 
-// Maintenant que statement.hpp est inclus au-dessus, le compilateur sait comment 
-// détruire ou gérer correctement les types liés à Statement sans générer d'erreur "sizeof" ou "incomplete type".
+
 Connection::~Connection() = default; 
 
 // --- Cycle de vie de la connexion ---
@@ -76,9 +74,21 @@ std::expected<void, std::string> Connection::connect() {
     }
     
     conn_.reset(rawConn);
+
+    // Si auto_commit_ est à true, on laisse libpq dans son comportement natif (chaque ordre est validé au fil de l'eau).
+    if (!auto_commit_) {
+        auto stmt = createStatement();
+        if (stmt) {
+            // execute() renvoie un std::expected, on peut ignorer ou vérifier le succès
+            auto res = stmt->execute("BEGIN;");
+            if (!res) {
+                return std::unexpected("Failed to initialize transaction block: " + res.error());
+            }
+        }
+    }
+
     return {};
 }
-
 std::expected<void, std::string> Connection::close() {
     conn_.reset();
     conn_info_.is_valid = false;
@@ -100,8 +110,7 @@ PGconn* Connection::get() const noexcept {
 }
 
 std::unique_ptr<Statement> Connection::createStatement() {
-    // 🟢 Fonctionne parfaitement maintenant car le constructeur de Statement(PGconn*) 
-    // et sa définition complète sont connus du compilateur dans ce fichier.
+
     return std::make_unique<Statement>(get());
 }
 

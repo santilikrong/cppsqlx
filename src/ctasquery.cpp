@@ -51,6 +51,7 @@ std::string CTASQuery::toSQL(bool quoted) const
 
     // Propagation du flag 'quoted' à la sous-requête interne
     sql << selectQuery_->toSQL();
+    sql << ";";
 
     return sql.str();
 }

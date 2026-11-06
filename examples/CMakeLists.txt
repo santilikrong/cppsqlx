@@ -3,14 +3,15 @@ cmake_minimum_required(VERSION 3.14)
 # -----------------------------------------------------------------
 # 1. DÉFINITION DES EXÉCUTABLES
 # -----------------------------------------------------------------
-set(EXAMPLES_LIST example1 example2 example3 example4 example5)
+set(EXAMPLES_LIST example1 example2 example3 example4 example5 example6)
 
 foreach(example ${EXAMPLES_LIST})
     add_executable(${example} ${example}.cpp)
 endforeach()
 
+
 # Optimisation interprocédurale (LTO) uniquement sur les cibles spécifiées
-set_target_properties(example1 example2 PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
+set_target_properties(example1 example2 example3 example4 example5 example6 PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 # -----------------------------------------------------------------
 # 2. DÉPENDANCES EXTERNES
@@ -47,3 +48,25 @@ foreach(example ${EXAMPLES_LIST})
         nlohmann_json::nlohmann_json
     )
 endforeach()
+
+# Déclaration de l'exécutable CLI
+add_executable(cppsqlx_cli cppsqlx_cli.cpp)
+
+# Liaison de l'exécutable avec les dépendances et le gestionnaire JSON du build
+target_link_libraries(cppsqlx_cli 
+    PRIVATE 
+        cppsqlx                # 🟢 CORRECTION : Utilisez "cppsqlx" à la place de "cppsqlx_shared"
+        Boost::program_options # Gestionnaire d'arguments CLI
+        log4cxx                # Gestionnaire de logs
+)
+
+# Inclusion du répertoire de build pour nlohmann/json.hpp
+target_include_directories(cppsqlx_cli 
+    PRIVATE 
+        ${PROJECT_BINARY_DIR}/_deps/json-src/include
+)
+
+
+
+# Installation du binaire dans le dossier système local
+install(TARGETS cppsqlx_cli DESTINATION bin)

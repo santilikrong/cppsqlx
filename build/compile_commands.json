@@ -1,0 +1,224 @@
+[
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/connection.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/connection.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/connection.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/connection.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/statement.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/statement.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/statement.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/statement.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/datasetfactory.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/datasetfactory.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/datasetfactory.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/datasetfactory.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/resultset.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/resultset.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/resultset.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/resultset.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/join.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/join.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/join.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/join.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/selectquery.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/selectquery.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/selectquery.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/selectquery.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/insertquery.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/insertquery.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/insertquery.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/insertquery.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/ctasquery.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/ctasquery.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/ctasquery.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/ctasquery.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/updatequery.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/updatequery.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/updatequery.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/updatequery.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/deletequery.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/deletequery.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/deletequery.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/deletequery.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/droptablequery.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/droptablequery.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/droptablequery.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/droptablequery.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/sqlexpression.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/sqlexpression.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/sqlexpression.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/sqlexpression.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/sqljoinexpression.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/sqljoinexpression.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/sqljoinexpression.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/sqljoinexpression.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/sqljoinexpressionbuilder.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/sqljoinexpressionbuilder.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/sqljoinexpressionbuilder.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/sqljoinexpressionbuilder.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/sqlselectbuilder.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/sqlselectbuilder.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/sqlselectbuilder.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/sqlselectbuilder.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/sqlselectionset.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/sqlselectionset.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/sqlselectionset.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/sqlselectionset.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/dataset.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/dataset.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/dataset.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/dataset.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/logger.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/logger.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/logger.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/logger.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/table.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/table.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/table.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/table.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/etltask.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/etltask.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/etltask.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/etltask.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/condition.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/condition.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/condition.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/condition.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/connectioncontext.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/connectioncontext.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/connectioncontext.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/connectioncontext.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/physicalconnection.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/physicalconnection.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/physicalconnection.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/physicalconnection.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/logicalconnection.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/logicalconnection.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/logicalconnection.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/logicalconnection.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/job.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/job.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/job.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/job.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/workflow.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/workflow.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/workflow.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/workflow.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/task.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/task.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/task.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/task.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/unit_select.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/unit_select.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/unit_select.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/unit_select.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/cte.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/cte.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/cte.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/cte.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -Dcppsqlx_EXPORTS -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -fPIC -o src/CMakeFiles/cppsqlx.dir/dataintegrationproject.cpp.o -c /home/santili/projects/cpp/cppsqlx/src/dataintegrationproject.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/src/dataintegrationproject.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/src/CMakeFiles/cppsqlx.dir/dataintegrationproject.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -flto=thin -o examples/CMakeFiles/example1.dir/example1.cpp.o -c /home/santili/projects/cpp/cppsqlx/examples/example1.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/examples/example1.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/examples/CMakeFiles/example1.dir/example1.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -flto=thin -o examples/CMakeFiles/example2.dir/example2.cpp.o -c /home/santili/projects/cpp/cppsqlx/examples/example2.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/examples/example2.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/examples/CMakeFiles/example2.dir/example2.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -flto=thin -o examples/CMakeFiles/example3.dir/example3.cpp.o -c /home/santili/projects/cpp/cppsqlx/examples/example3.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/examples/example3.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/examples/CMakeFiles/example3.dir/example3.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -flto=thin -o examples/CMakeFiles/example4.dir/example4.cpp.o -c /home/santili/projects/cpp/cppsqlx/examples/example4.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/examples/example4.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/examples/CMakeFiles/example4.dir/example4.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -flto=thin -o examples/CMakeFiles/example5.dir/example5.cpp.o -c /home/santili/projects/cpp/cppsqlx/examples/example5.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/examples/example5.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/examples/CMakeFiles/example5.dir/example5.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -flto=thin -o examples/CMakeFiles/example6.dir/example6.cpp.o -c /home/santili/projects/cpp/cppsqlx/examples/example6.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/examples/example6.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/examples/CMakeFiles/example6.dir/example6.cpp.o"
+},
+{
+  "directory": "/home/santili/projects/cpp/cppsqlx/build",
+  "command": "/usr/bin/clang++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -I/home/santili/projects/cpp/cppsqlx/include -I/home/santili/projects/cpp/cppsqlx/build/_deps/json-src/include -g -std=gnu++23 -o examples/CMakeFiles/cppsqlx_cli.dir/cppsqlx_cli.cpp.o -c /home/santili/projects/cpp/cppsqlx/examples/cppsqlx_cli.cpp",
+  "file": "/home/santili/projects/cpp/cppsqlx/examples/cppsqlx_cli.cpp",
+  "output": "/home/santili/projects/cpp/cppsqlx/build/examples/CMakeFiles/cppsqlx_cli.dir/cppsqlx_cli.cpp.o"
+}
+]

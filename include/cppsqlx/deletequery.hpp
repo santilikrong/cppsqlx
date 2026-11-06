@@ -4,9 +4,8 @@
 #include <string>
 #include <optional>
 #include <expected>
-#include <nlohmann/json.hpp>
-#include <cppsqlx/sqlexpression.hpp>
 #include <cppsqlx/json_concepts.hpp>
+#include <cppsqlx/sqlexpression.hpp>
 
 namespace cppsqlx
 {
@@ -16,27 +15,27 @@ class DeleteQuery
 private:
     std::optional<std::string> schema_;
     std::string table_;
-    std::optional<SQLExpression> where_;
-    bool quoted_ = false;
+    std::optional<SQLExpression> whereCondition_;
 
 public:
     DeleteQuery() = default;
     explicit DeleteQuery(std::string table) : table_(std::move(table)) {}
     ~DeleteQuery() = default;
 
-    // ---------- Builder Fluent API ----------
-    DeleteQuery& from(std::string table);
-    DeleteQuery& schema(std::string schema);
-    DeleteQuery& where(const SQLExpression& expr);
-    DeleteQuery& setQuoted(bool quoted) noexcept { quoted_ = quoted; return *this; }
+    // ---------- Fluent Builder API ----------
+    DeleteQuery& schema(std::string schemaName) { schema_ = std::move(schemaName); return *this; }
+    
+    DeleteQuery& where(SQLExpression condition) { 
+        whereCondition_ = std::move(condition); 
+        return *this; 
+    }
 
     // ---------- SQL Generation ----------
-    [[nodiscard]] std::string toSQL() const { return toSQL(quoted_); }
-    [[nodiscard]] std::string toSQL(bool quoted) const;
+    [[nodiscard]] std::string toSQL(bool quoted = false) const;
 
     // ---------- JSON Concepts Contract ----------
-    [[nodiscard]] nlohmann::json toJSON() const;
-    static std::expected<DeleteQuery, std::string> fromJSON(const nlohmann::json& j);
+    [[nodiscard]] json toJSON() const;
+    static std::expected<DeleteQuery, std::string> fromJSON(const json& j);
 };
 
 } // namespace cppsqlx

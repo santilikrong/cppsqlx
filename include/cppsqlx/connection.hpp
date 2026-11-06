@@ -93,6 +93,11 @@ public:
     Connection(Connection&&) noexcept = default;
     Connection& operator=(Connection&&) noexcept = default;
 
+    Connection& setAutoCommit(bool enable) noexcept {
+        auto_commit_ = enable;
+        return *this;
+    }
+
     std::expected<void, std::string> connect();
     std::expected<void, std::string> close();
     std::unique_ptr<Statement> createStatement();
@@ -108,6 +113,7 @@ private:
     std::string connection_string_;
     std::unique_ptr<PGconn, PgConnDeleter> conn_{nullptr};
     connection_info conn_info_;
+    bool auto_commit_ = true; 
 };
 
 } // namespace cppsqlx

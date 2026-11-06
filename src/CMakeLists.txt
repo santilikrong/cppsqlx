@@ -28,6 +28,7 @@ add_library(cppsqlx SHARED
     ctasquery.cpp
     updatequery.cpp
     deletequery.cpp
+    droptablequery.cpp
     sqlexpression.cpp
     sqljoinexpression.cpp
     sqljoinexpressionbuilder.cpp
@@ -46,6 +47,7 @@ add_library(cppsqlx SHARED
     task.cpp
     unit_select.cpp
     cte.cpp
+    dataintegrationproject.cpp
 )
 
 find_package(PkgConfig REQUIRED)
