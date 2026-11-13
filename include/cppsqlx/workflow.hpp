@@ -10,6 +10,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <expected>
+#include <functional>
 #include <cppsqlx/json_concepts.hpp>
 #include <cppsqlx/connectioncontext.hpp>
 #include <cppsqlx/job.hpp>
@@ -40,18 +41,17 @@ namespace cppsqlx
         void setContext(ConnectionContext context) { context_ = std::move(context); }
         void addJob(std::shared_ptr<Job> job) { jobs_.push_back(std::move(job)); }
 
-        // ---------- Execution Engine ----------
-        /**
-         * @brief Lance l'orchestration asynchrone et multi-threadée du pipeline de données.
-         * Évalue dynamiquement le graphe de dépendances au fil de l'eau.
-         */
-        // Dans la section public de la classe Workflow (workflow.hpp) :
+
+using JobStateCallback = std::function<void(const std::string&, JobStatus, const std::string&)>;
+
         /**
          * @brief Exécute le workflow sur un couloir spécifique d'une connexion logique.
          * @param logicalConn La passerelle réseau logique (ex: Finance_DB_Gateway).
          * @param environmentContext Le couloir d'exécution (ex: "DEV", "TEST", "PROD").
          */
-        void run(const LogicalConnection &logicalConn, const std::string &environmentContext);
+void run(const LogicalConnection& logicalConn, 
+         const std::string& environmentContext, 
+         JobStateCallback onJobStateChange = nullptr);
 
         // ---------- JSON Concepts Contract ----------
         [[nodiscard]] json toJSON() const;

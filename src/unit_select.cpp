@@ -127,4 +127,32 @@ namespace cppsqlx
         }
     }
 
+    // On transforme le variant interne en une requête de création de table (CTAS)
+    void UnitSelect::convertToCTAS(const SelectQuery &selectQuery)
+    {
+        this->targetType = TargetType::Table;
+        
+        // 🟢 Utilisation de l'API Fluide native : createTable() et select()
+        cppsqlx::CTASQuery ctas;
+        ctas.createTable(this->name)
+            .select(selectQuery)
+            .setQuoted(this->quoted);
+        
+        this->query = std::move(ctas); // Le variant passe à l'index 2 (CTASQuery)
+    }
+
+    // On transforme le variant interne en une requête d'insertion (INSERT INTO ... SELECT)
+    void UnitSelect::convertToInsert(const SelectQuery &selectQuery)
+    {
+        this->targetType = TargetType::Table;
+        
+        // 🟢 Utilisation de l'API Fluide native : into() et select()
+        cppsqlx::InsertQuery insert;
+        insert.into(this->name)
+              .select(selectQuery)
+              .setQuoted(this->quoted);
+        
+        this->query = std::move(insert); // Le variant passe à l'index 1 (InsertQuery)
+    }
+
 } // namespace cppsqlx

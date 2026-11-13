@@ -52,6 +52,8 @@ public:
 
     // Join operation
     Join joinTo(const Dataset& rightds) const;
+
+    [[nodiscard]] const std::map<int, Column>& columns() const;
 };
 
 } // namespace cppsqlx

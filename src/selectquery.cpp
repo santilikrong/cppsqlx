@@ -569,6 +569,7 @@ namespace cppsqlx
                     }
 
                     // 💡 Reconstruction polymorphe de la cible du JOIN via la Factory
+                    // Reconstruction polymorphe de la cible du JOIN via la Factory ou target_identifier
                     if (joinJson.contains("target") && !joinJson["target"].is_null())
                     {
                         auto targetRes = JoinableFactory::fromJSON(joinJson["target"]);
@@ -576,11 +577,26 @@ namespace cppsqlx
                             return std::unexpected("SelectQuery::fromJSON (join target) -> " + targetRes.error());
                         item.target = std::move(*targetRes);
                     }
-                    else if (joinJson.contains("alias"))
+                    else if (joinJson.contains("target_identifier") && !joinJson["target_identifier"].get<std::string>().empty())
                     {
-                        // Fallback si seule l'identité textuelle est présente
-                        // item.target = std::make_shared<Dataset>(joinJson["alias"].get<std::string>());
+                        std::string targetIdent = joinJson["target_identifier"].get<std::string>();
+                        std::string schemaName = "";
+                        std::string tableName = targetIdent;
+
+                        if (auto dotPos = targetIdent.find('.'); dotPos != std::string::npos)
+                        {
+                            schemaName = targetIdent.substr(0, dotPos);
+                            tableName = targetIdent.substr(dotPos + 1);
+                        }
+
+                        Dataset ds(tableName);
+                        if (!schemaName.empty())
+                        {
+                            ds.setSchema(schemaName);
+                        }
+                        item.target = std::make_shared<Dataset>(std::move(ds));
                     }
+
 
                     query.joins_.push_back(std::move(item));
                 }

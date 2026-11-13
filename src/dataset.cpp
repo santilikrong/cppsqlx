@@ -140,4 +140,9 @@ std::expected<Dataset, std::string> Dataset::fromJSON(const json& j)
     }
 }
 
+const std::map<int, Column>& Dataset::columns() const
+{
+    return columns_;
+}
+
 } // namespace cppsqlx

@@ -36,6 +36,9 @@ JobResult Job::execute(std::shared_ptr<Connection> connection)
             auto taskRes = taskPtr->execute(connection);
             
             if (!taskRes) {
+std::cerr << "[Job: " << name_ << "] ECHEC CRITIQUE pos " << pos 
+                          << " ('" << taskPtr->name() << "') -> " << taskRes.error() << std::endl;
+
                 // 3. Log d'erreur critique pour identifier instantanément le maillon faible
                 LOG4CXX_ERROR(logger, "[Job: " << name_ << "] 🔥 ÉCHEC CRITIQUE à la position " << pos 
                     << " lors de l'exécution de '" << taskPtr->name() << "' -> Erreur : " << taskRes.error());
@@ -92,22 +95,31 @@ std::expected<Job, std::string> Job::fromJSON(const json& j)
         job.x_ = data.value("x", 0);
         job.y_ = data.value("y", 0);
 
-        // 🟢 RECONSTRUCTION SÉCURISÉE DES TÂCHES ET DE LEURS ÉTAPES INTERNES
-        if (data.contains("tasks") && data["tasks"].is_object()) {
-            for (const auto& [key, taskJson] : data["tasks"].items()) {
-                int pos = std::stoi(key);
-                
-                // Appel récursif au fromJSON de Task pour récupérer steps_
-                auto taskRes = Task::fromJSON(taskJson);
-                if (!taskRes) return std::unexpected("Job::fromJSON (task) -> " + taskRes.error());
-                
-                job.addTask(pos, std::make_shared<Task>(std::move(*taskRes)));
+        // 1. Reconstruction des tâches (Format tableau écrit par Job::toJSON)
+        if (data.contains("tasks")) {
+            if (data["tasks"].is_array()) {
+                for (const auto& item : data["tasks"]) {
+                    int pos = item.value("pos", 1);
+                    const json& taskJson = item.contains("task") ? item["task"] : item;
+                    auto taskRes = Task::fromJSON(taskJson);
+                    if (!taskRes) return std::unexpected("Job::fromJSON (task) -> " + taskRes.error());
+                    job.addTask(pos, std::make_shared<Task>(std::move(*taskRes)));
+                }
+            }
+            else if (data["tasks"].is_object()) {
+                for (const auto& [key, taskJson] : data["tasks"].items()) {
+                    int pos = std::stoi(key);
+                    auto taskRes = Task::fromJSON(taskJson);
+                    if (!taskRes) return std::unexpected("Job::fromJSON (task) -> " + taskRes.error());
+                    job.addTask(pos, std::make_shared<Task>(std::move(*taskRes)));
+                }
             }
         }
 
-        // Reconstruction des conditions de dépendances
-        if (data.contains("conditions") && data["conditions"].is_array()) {
-            for (const auto& condJson : data["conditions"]) {
+        // 2. Reconstruction des conditions de dépendances ("requirements" écrit par Job::toJSON)
+        const char* reqKey = data.contains("requirements") ? "requirements" : "conditions";
+        if (data.contains(reqKey) && data[reqKey].is_array()) {
+            for (const auto& condJson : data[reqKey]) {
                 auto condRes = Condition::fromJSON(condJson);
                 if (condRes) job.addCondition(std::move(*condRes));
             }

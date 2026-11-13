@@ -107,9 +107,11 @@ int main(int argc, char *argv[])
             LOG4CXX_ERROR(logger, "Impossible de générer le JSON : dsreg est invalide -> " + dsreg.error());
         }
 
+        /*
         auto q_ag = cppsqlx::SelectQuery()
                       .select("id"_col.as("id"), "nom"_col.as("nom"), "id_reg"_col.as("id_reg"))
                       .from(dsag.value());
+
 
 auto q_emp = cppsqlx::SelectQuery()
               .with(CTE("ag", std::make_shared<SelectQuery>(q_ag)))
@@ -130,7 +132,18 @@ auto q_emp = cppsqlx::SelectQuery()
                          .from(dsreg.value().as("reg"))
                          .join("INNER JOIN", std::make_shared<SelectQuery>(q_emp), "emp",
                                JEX().left("emp.id_reg"_col).right("reg.id"_col).equalOp())
-                               ; 
+                               ; */
+
+
+        auto query = SelectQuery()
+                     .select("emp.matricule"_col.as("matricule"),
+                            "ag.nom"_col.as("agence"),
+                            "reg.nom"_col.as("region"))
+                     .from(dsemp.value().as("emp"))
+                     .join("INNER JOIN", std::make_shared<Dataset>(dsag.value()), "ag",
+                               JEX().left("emp.id_ag"_col).right("ag.id"_col).equalOp())
+                     .join("INNER JOIN", std::make_shared<Dataset>(dsreg.value()), "reg",
+                               JEX().left("ag.id_reg"_col).right("reg.id"_col).equalOp());
 
 
 

@@ -1,5 +1,8 @@
 #include <cppsqlx/task.hpp>
 #include <iostream>
+#include <chrono>
+#include <thread>
+
 #include "cppsqlx/logger.hpp"
 
 namespace cppsqlx
@@ -79,6 +82,10 @@ namespace cppsqlx
                 }
 
                 // 3. Exécution de la requête brute sur PostgreSQL
+                
+                int randomNum = rand() % 10000;
+                std::this_thread::sleep_for(std::chrono::milliseconds(randomNum));
+                std::cout << randomNum << std::endl;
                 auto res = stmt->execute(sql);
 
                 if (!res)

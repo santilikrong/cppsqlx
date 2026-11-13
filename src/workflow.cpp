@@ -57,9 +57,10 @@ namespace cppsqlx
         }
     }
 
-    void Workflow::run(const LogicalConnection &logicalConn, const std::string &environmentContext)
+    void Workflow::run(const LogicalConnection &logicalConn, 
+                       const std::string &environmentContext, 
+                       JobStateCallback onJobStateChange)
     {
-        // 1. Résolution dynamique de la configuration physique du couloir
         auto physConfigRes = logicalConn.getConfiguration(environmentContext);
         if (!physConfigRes)
         {
@@ -68,30 +69,29 @@ namespace cppsqlx
         }
         const auto &physConfig = *physConfigRes;
 
-        // 2. Construction de la chaîne de connexion PostgreSQL brute
         std::string connStr = "dbname=" + physConfig.dbname_ +
                               " user=" + physConfig.dbuser_ +
                               " host=" + physConfig.dbhost_ +
                               " port=" + std::to_string(physConfig.dbport_) +
                               " sslmode=disable";
 
-        // 3. Initialisation de la connexion pour cette session de Workflow
-        auto connection = std::make_shared<Connection>(connStr);
-        if (auto connectRes = connection->connect(); !connectRes)
+        // Vérification rapide de la joignabilité du cluster avant de lancer les workers
         {
-            std::cerr << "[Workflow ERR] Échec de connexion au cluster physique : " << connectRes.error() << std::endl;
-            return;
+            auto testConn = std::make_shared<Connection>(connStr);
+            if (auto connectRes = testConn->connect(); !connectRes)
+            {
+                std::cerr << "[Workflow ERR] Échec de connexion au cluster physique : " << connectRes.error() << std::endl;
+                return;
+            }
+            testConn->close();
         }
 
-        // --- À partir d'ici, le moteur de threads s'exécute normalement sur cette connexion ---
         std::map<std::string, JobResult> workflowContext;
         std::list<std::shared_ptr<Job>> remainingJobs = jobs_;
         std::mutex contextMutex;
         std::condition_variable cv;
         size_t activeWorkers = 0;
         std::vector<std::jthread> workerThreads;
-
-        std::cout << "[Workflow] Démarrage asynchrone sur [" << logicalConn.name() << " -> " << environmentContext << "]" << std::endl;
 
         while (true)
         {
@@ -120,16 +120,46 @@ namespace cppsqlx
                     activeWorkers++;
                 }
 
-                // Chaque job reçoit la connexion résolue dynamiquement
-                workerThreads.emplace_back([jobPtr, connection, &workflowContext, &contextMutex, &cv, &activeWorkers]()
-                                           {
-                JobResult result = jobPtr->execute(connection);
+                // 1. Notification immédiate : le job passe EN COURS (Violet)
+                if (onJobStateChange)
                 {
-                    std::lock_guard<std::mutex> lock(contextMutex);
-                    workflowContext[jobPtr->name()] = std::move(result);
-                    activeWorkers--;
+                    onJobStateChange(jobPtr->name(), JobStatus::Running, "Exécution parallèle en cours...");
                 }
-                cv.notify_one(); });
+
+                // Chaque worker reçoit 'connStr' et ouvre sa propre session PostgreSQL dédiée
+                workerThreads.emplace_back([jobPtr, connStr, &workflowContext, &contextMutex, &cv, &activeWorkers, onJobStateChange]()
+                {
+                    JobResult result;
+                    auto workerConn = std::make_shared<Connection>(connStr);
+
+                    if (auto connRes = workerConn->connect(); !connRes)
+                    {
+                        result = JobResult{
+                            jobPtr->name(),
+                            JobStatus::Failed,
+                            "Échec de connexion worker : " + connRes.error()
+                        };
+                    }
+                    else
+                    {
+                        // Exécution 100% parallèle sans aucun verrou global
+                        result = jobPtr->execute(workerConn);
+                        workerConn->close();
+                    }
+
+                    // 2. Notification immédiate : le job est terminé (Vert OK ou Rouge KO)
+                    if (onJobStateChange)
+                    {
+                        onJobStateChange(jobPtr->name(), result.status, result.message);
+                    }
+
+                    {
+                        std::lock_guard<std::mutex> lock(contextMutex);
+                        workflowContext[jobPtr->name()] = std::move(result);
+                        activeWorkers--;
+                    }
+                    cv.notify_one();
+                });
             }
 
             std::unique_lock<std::mutex> lock(contextMutex);
@@ -140,20 +170,18 @@ namespace cppsqlx
             {
                 if (activeWorkers == 0 && !remainingJobs.empty())
                 {
-                    std::cerr << "[CRITICAL] Deadlock détecté !" << std::endl;
+                    for (const auto& blockedJob : remainingJobs)
+                    {
+                        if (onJobStateChange)
+                        {
+                            onJobStateChange(blockedJob->name(), JobStatus::NotStarted, "En attente (dépendance non satisfaite)");
+                        }
+                    }
                     break;
                 }
                 cv.wait(lock);
             }
         }
-
-        auto closeRes = connection->close();
-        if (!closeRes)
-        {
-            auto logger = cppsqlx::Logger::instance().getLogger("cppsqlx.workflow");
-            LOG4CXX_WARN(logger, "Erreur lors de la fermeture de la connexion physique : " << closeRes.error());
-        }
-        std::cout << "[Workflow] Exécution terminée pour l'environnement : " << environmentContext << std::endl;
     }
 
 } // namespace cppsqlx

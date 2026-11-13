@@ -20,6 +20,7 @@ set(json_SOURCE_DIR "${json_SOURCE_DIR}" PARENT_SCOPE)
 add_library(cppsqlx SHARED
     connection.cpp
     statement.cpp
+    databasemetadata.cpp
     datasetfactory.cpp
     resultset.cpp
     join.cpp

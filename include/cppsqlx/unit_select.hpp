@@ -79,6 +79,9 @@ namespace cppsqlx
         // ---------- JSON Concepts Contract ----------
         [[nodiscard]] json toJSON() const;
         static std::expected<UnitSelect, std::string> fromJSON(const json &j);
+
+        void convertToCTAS(const SelectQuery &selectQuery);
+        void convertToInsert(const SelectQuery &selectQuery);
     };
 
 } // namespace cppsqlx

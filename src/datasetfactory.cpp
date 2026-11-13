@@ -88,7 +88,18 @@ namespace cppsqlx
             int scale = scaleExpected.value_or(0);
             bool isUnique = false;
 
-            // 4. Utilisation recommandée de votre Factory Method de création de colonne
+            // 🟢 FORMATAGE DU TYPE ENRICHI AVEC SA TAILLE :
+            // Si la colonne possède une longueur ou une précision spécifique, on l'annote dynamiquement
+            if (size > 0)
+            {
+                dataType += "(" + std::to_string(size) + ")";
+            }
+            else if (precision > 0 && scale >= 0 && dataType != "integer")
+            {
+                dataType += "(" + std::to_string(precision) + "," + std::to_string(scale) + ")";
+            }
+
+            // 4. Utilisation recommandée de votre Factory Method de création de colonne avec le type formaté
             auto columnCreation = Column::create(
                 columnName, dataType, isNullable, isUnique, defaultVal, size, precision, scale, position);
 
@@ -104,5 +115,6 @@ namespace cppsqlx
 
         return ds;
     }
+
 
 } // namespace cppsqlx
