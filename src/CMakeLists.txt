@@ -1,3 +1,15 @@
+# -----------------------------------------------------------------
+# 0. SUPPORT HOMEBREW SUR MACOS (Apple Silicon & Intel)
+# -----------------------------------------------------------------
+if(APPLE)
+    if(EXISTS "/opt/homebrew")
+        list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew" "/opt/homebrew/opt/libpq")
+        set(ENV{PKG_CONFIG_PATH} "/opt/homebrew/opt/libpq/lib/pkgconfig:/opt/homebrew/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
+    elseif(EXISTS "/usr/local")
+        list(APPEND CMAKE_PREFIX_PATH "/usr/local" "/usr/local/opt/libpq")
+        set(ENV{PKG_CONFIG_PATH} "/usr/local/opt/libpq/lib/pkgconfig:/usr/local/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
+    endif()
+endif()
 
 # -----------------------------------------------------------------
 # 1. GESTION DE LA DÉPENDANCE JSON (DÉPÔT GIT CORRECT & LÉGER)
@@ -12,7 +24,6 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(json)
 
 set(json_SOURCE_DIR "${json_SOURCE_DIR}" PARENT_SCOPE)
-
 
 # -----------------------------------------------------------------
 # 2. CIBLE DU PROJET (cppsqlx)
@@ -53,17 +64,20 @@ add_library(cppsqlx SHARED
 
 find_package(PkgConfig REQUIRED)
 find_package(log4cxx REQUIRED)
-
-# Utilisation de la commande moderne par cible plutôt que le include_directories global
-target_include_directories(cppsqlx PUBLIC ${PROJECT_SOURCE_DIR}/include)
-
 pkg_check_modules(LIBPQ REQUIRED libpq)
 
-LINK_DIRECTORIES(
-    ${LOG4CXX_LIBRARY_DIRS} 
+target_include_directories(cppsqlx 
+    PUBLIC 
+        ${PROJECT_SOURCE_DIR}/include
+    PRIVATE 
+        ${LIBPQ_INCLUDE_DIRS}
 )
 
-target_include_directories(cppsqlx PRIVATE ${LIBPQ_INCLUDE_DIRS})
+target_link_directories(cppsqlx 
+    PRIVATE 
+        ${LOG4CXX_LIBRARY_DIRS}
+        ${LIBPQ_LIBRARY_DIRS}
+)
 
 # -----------------------------------------------------------------
 # 3. LIAISON DES LIBS (Passage en PRIVATE pour éviter l'erreur d'export)
@@ -72,13 +86,10 @@ target_link_libraries(cppsqlx
     PRIVATE 
         log4cxx 
         ${LIBPQ_LINK_LIBRARIES}
-        nlohmann_json::nlohmann_json   # <-- Changé de PUBLIC à PRIVATE
+        nlohmann_json::nlohmann_json
 )
 
-# Optional: set version info for shared library
 set_target_properties(cppsqlx PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION 1
 )
-
-set(json_SOURCE_DIR "${json_SOURCE_DIR}" PARENT_SCOPE) 
