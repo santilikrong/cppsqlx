@@ -68,12 +68,7 @@ namespace cppsqlx
             return;
         }
         const auto &physConfig = *physConfigRes;
-
-        std::string connStr = "dbname=" + physConfig.dbname_ +
-                              " user=" + physConfig.dbuser_ +
-                              " host=" + physConfig.dbhost_ +
-                              " port=" + std::to_string(physConfig.dbport_) +
-                              " sslmode=disable";
+        std::string connStr = physConfig.toConnectionString();
 
         // Vérification rapide de la joignabilité du cluster avant de lancer les workers
         {

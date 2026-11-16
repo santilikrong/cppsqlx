@@ -2,14 +2,15 @@
 # 0. SUPPORT HOMEBREW SUR MACOS (Apple Silicon & Intel)
 # -----------------------------------------------------------------
 if(APPLE)
-    if(EXISTS "/opt/homebrew")
+    if(EXISTS "/opt/homebrew/opt/libpq")
+        set(PostgreSQL_ROOT "/opt/homebrew/opt/libpq")
         list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew" "/opt/homebrew/opt/libpq")
-        set(ENV{PKG_CONFIG_PATH} "/opt/homebrew/opt/libpq/lib/pkgconfig:/opt/homebrew/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
-    elseif(EXISTS "/usr/local")
+    elseif(EXISTS "/usr/local/opt/libpq")
+        set(PostgreSQL_ROOT "/usr/local/opt/libpq")
         list(APPEND CMAKE_PREFIX_PATH "/usr/local" "/usr/local/opt/libpq")
-        set(ENV{PKG_CONFIG_PATH} "/usr/local/opt/libpq/lib/pkgconfig:/usr/local/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
     endif()
 endif()
+
 
 # -----------------------------------------------------------------
 # 1. GESTION DE LA DÉPENDANCE JSON (DÉPÔT GIT CORRECT & LÉGER)
@@ -64,30 +65,30 @@ add_library(cppsqlx SHARED
 
 find_package(PkgConfig REQUIRED)
 find_package(log4cxx REQUIRED)
-pkg_check_modules(LIBPQ REQUIRED libpq)
+find_package(PostgreSQL REQUIRED)
 
 target_include_directories(cppsqlx 
     PUBLIC 
         ${PROJECT_SOURCE_DIR}/include
-    PRIVATE 
-        ${LIBPQ_INCLUDE_DIRS}
+        ${PostgreSQL_INCLUDE_DIRS}
 )
 
 target_link_directories(cppsqlx 
     PRIVATE 
         ${LOG4CXX_LIBRARY_DIRS}
-        ${LIBPQ_LIBRARY_DIRS}
 )
 
 # -----------------------------------------------------------------
-# 3. LIAISON DES LIBS (Passage en PRIVATE pour éviter l'erreur d'export)
+# 3. LIAISON DES LIBS
 # -----------------------------------------------------------------
 target_link_libraries(cppsqlx 
+    PUBLIC
+        PostgreSQL::PostgreSQL
     PRIVATE 
         log4cxx 
-        ${LIBPQ_LINK_LIBRARIES}
         nlohmann_json::nlohmann_json
 )
+
 
 set_target_properties(cppsqlx PROPERTIES
     VERSION ${PROJECT_VERSION}

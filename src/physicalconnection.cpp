@@ -13,7 +13,8 @@ json PhysicalConnection::toJSON() const
             {"host", dbhost_},
             {"port", dbport_},
             {"user", dbuser_},
-            {"password", dbpassword_}
+            {"password", dbpassword_},
+            {"sslmode", sslmode_.empty() ? "prefer" : sslmode_}
         }}
     };
 }
@@ -30,6 +31,7 @@ std::expected<PhysicalConnection, std::string> PhysicalConnection::fromJSON(cons
         pc.dbport_ = data.at("port").get<int>();
         pc.dbuser_ = data.at("user").get<std::string>();
         pc.dbpassword_ = data.at("password").get<std::string>();
+        pc.sslmode_ = data.value("sslmode", "prefer");
         return pc;
     }
     catch (const std::exception& e) {
@@ -38,3 +40,4 @@ std::expected<PhysicalConnection, std::string> PhysicalConnection::fromJSON(cons
 }
 
 } // namespace cppsqlx
+
