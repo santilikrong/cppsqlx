@@ -119,6 +119,57 @@ std::expected<std::vector<ColumnMetadata>, std::string> DatabaseMetadata::getTab
     return columns;
 }
 
+std::expected<std::vector<ColumnMetadata>, std::string> DatabaseMetadata::getQueryStructure(const std::string& selectSql) const
+{
+    if (!connection_ || !connection_->isConnected())
+    {
+        return std::unexpected("Connexion PostgreSQL inactive pour l'introspection de la requête.");
+    }
+
+    // Exécution avec LIMIT 0 : PostgreSQL planifie la requête sans lire aucune ligne
+    std::string probeSql = "SELECT * FROM (" + selectSql + ") AS _dizui_introspect LIMIT 0";
+    PGresult* res = PQexec(connection_->get(), probeSql.c_str());
+
+    if (PQresultStatus(res) != PGRES_TUPLES_OK)
+    {
+        std::string err = PQerrorMessage(connection_->get());
+        PQclear(res);
+        return std::unexpected("Erreur SQL lors de l'introspection : " + err);
+    }
+
+    int numFields = PQnfields(res);
+    std::vector<ColumnMetadata> columns;
+    columns.reserve(numFields);
+
+    for (int i = 0; i < numFields; ++i)
+    {
+        ColumnMetadata col;
+        col.name = PQfname(res, i);
+        col.isNullable = true;
+        col.isPrimaryKey = false;
+
+        Oid typeOid = PQftype(res, i);
+        int typeMod = PQfmod(res, i);
+
+        // Résolution du nom lisible du type PostgreSQL (ex: "character varying", "numeric", "integer")
+        std::string typeQuery = "SELECT pg_catalog.format_type(" + std::to_string(typeOid) + ", " + std::to_string(typeMod) + ")";
+        PGresult* typeRes = PQexec(connection_->get(), typeQuery.c_str());
+        if (PQresultStatus(typeRes) == PGRES_TUPLES_OK && PQntuples(typeRes) > 0)
+        {
+            col.dataType = PQgetvalue(typeRes, 0, 0);
+        }
+        else
+        {
+            col.dataType = "unknown";
+        }
+        PQclear(typeRes);
+
+        columns.push_back(std::move(col));
+    }
+
+    PQclear(res);
+    return columns;
+}
 
 
 } // namespace cppsqlx

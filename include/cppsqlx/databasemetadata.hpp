@@ -35,6 +35,8 @@ public:
     [[nodiscard]] std::expected<std::vector<std::string>, std::string> getTables(const std::string& schema = "public") const;
     [[nodiscard]] std::expected<std::vector<std::string>, std::string> getViews(const std::string& schema = "public") const;
     [[nodiscard]] std::expected<std::vector<ColumnMetadata>, std::string> getTableStructure(const std::string& tableName, const std::string& schema = "public") const;
+    [[nodiscard]] std::expected<std::vector<ColumnMetadata>, std::string> getQueryStructure(const std::string& sql) const;
+
 };
 
 } // namespace cppsqlx

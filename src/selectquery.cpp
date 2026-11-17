@@ -243,7 +243,7 @@ namespace cppsqlx
         return "(" + toSQL() + ")";
     }
 
-    // 🟢 AJOUT : Le helper interne récursif qui collecte les CTEs à plat
+    // Le helper interne récursif qui collecte les CTEs à plat
     std::string SelectQuery::toSQLInternal(std::vector<CollectedCTE>& collectedCtes) const
     {
         // 1. D'abord, collecter les CTEs locaux définis sur cette instance précise
@@ -413,11 +413,25 @@ namespace cppsqlx
         {
             j["schema"] = schema_.value();
         }
-        j["table"] = table_;
+
+        if (!table_.empty())
+        {
+            j["table"] = table_;
+        }
+        else if (from_)
+        {
+            j["table"] = from_->joinidentifier();
+        }
+        else
+        {
+            j["table"] = "";
+        }
+
         if (alias_.has_value())
         {
             j["alias"] = alias_.value();
         }
+
 
         // 2. Clause SELECT (utilise le toJSON de SQLSelectionSet)
         j["select"] = selectionSet_.toJSON();
