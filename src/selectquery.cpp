@@ -259,17 +259,28 @@ namespace cppsqlx
             }
         }
 
-        // 2. Collecter récursivement les CTEs cachés dans les clauses de JOIN
+        // 2. Collecter récursivement les CTEs cachés dans les clauses de JOIN (y compris les sous-requêtes UNION)
         for (const auto &j : joins_)
         {
             if (j.target)
             {
                 if (auto subquery = std::dynamic_pointer_cast<SelectQuery>(j.target))
                 {
-                    subquery->toSQLInternal(collectedCtes);
+                    std::string subSql = subquery->toSQLInternal(collectedCtes);
+                    if (subquery->hasSetOperations())
+                    {
+                        std::string cteName = subquery->alias_.value_or(subquery->joinidentifier());
+                        auto it = std::find_if(collectedCtes.begin(), collectedCtes.end(),
+                                               [&cteName](const CollectedCTE &c) { return c.name == cteName; });
+                        if (it == collectedCtes.end())
+                        {
+                            collectedCtes.push_back({cteName, subSql});
+                        }
+                    }
                 }
             }
         }
+
 
         // 3. Générer le corps de la requête SELECT courante (sans son propre WITH local)
         std::ostringstream sql;
@@ -293,9 +304,28 @@ namespace cppsqlx
             {
                 if (auto subFrom = std::dynamic_pointer_cast<SelectQuery>(from_))
                 {
-                    subFrom->toSQLInternal(collectedCtes);
+                    std::string subSql = subFrom->toSQLInternal(collectedCtes);
+                    if (subFrom->hasSetOperations())
+                    {
+                        std::string cteName = subFrom->alias_.value_or(subFrom->joinidentifier());
+                        auto it = std::find_if(collectedCtes.begin(), collectedCtes.end(),
+                                               [&cteName](const CollectedCTE &c) { return c.name == cteName; });
+                        if (it == collectedCtes.end())
+                        {
+                            collectedCtes.push_back({cteName, subSql});
+                        }
+                        sql << formatIdent(cteName);
+                    }
+                    else
+                    {
+                        sql << from_->joinidentifier();
+                    }
                 }
-                sql << from_->joinidentifier();
+                else
+                {
+                    sql << from_->joinidentifier();
+                }
+
                 if (alias_ && !alias_->empty())
                 {
                     sql << " AS " << formatIdent(*alias_);
