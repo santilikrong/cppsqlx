@@ -92,6 +92,38 @@ namespace cppsqlx
         return Order(expr, SortDirection::DESC);
     }
 
+    enum class SetOperator
+    {
+        UNION,
+        UNION_ALL,
+        INTERSECT,
+        EXCEPT
+    };
+
+    inline std::string toString(SetOperator op)
+    {
+        switch (op)
+        {
+        case SetOperator::UNION:
+            return "UNION";
+        case SetOperator::UNION_ALL:
+            return "UNION ALL";
+        case SetOperator::INTERSECT:
+            return "INTERSECT";
+        case SetOperator::EXCEPT:
+            return "EXCEPT";
+        }
+        return "UNION ALL";
+    }
+
+    class SelectQuery; // Déclaration anticipée
+
+    struct SetOperationBranch
+    {
+        SetOperator op = SetOperator::UNION_ALL;
+        std::shared_ptr<SelectQuery> query;
+    };
+
     class SelectQuery : public SQLQuery<Resultset>, public Joinable
     {
     public:
@@ -203,10 +235,30 @@ namespace cppsqlx
         SelectQuery &limit(size_t n);
         SelectQuery &offset(size_t n);
 
+        // Set Operations (UNION ALL, UNION, INTERSECT, EXCEPT)
+        SelectQuery &unionAll(const SelectQuery &other);
+        SelectQuery &unionAll(std::shared_ptr<SelectQuery> other);
+
+        SelectQuery &unionDistinct(const SelectQuery &other);
+        SelectQuery &unionDistinct(std::shared_ptr<SelectQuery> other);
+
+        SelectQuery &intersect(const SelectQuery &other);
+        SelectQuery &except(const SelectQuery &other);
+
+        // Clauses globales appliquées après l'ensemble des branches UNION / UNION ALL
+        SelectQuery &unionOrderBy(const Order &order);
+        SelectQuery &unionLimit(size_t n);
+        SelectQuery &unionOffset(size_t n);
+
+        [[nodiscard]] const std::vector<SetOperationBranch> &setOperations() const { return setOperations_; }
+        [[nodiscard]] bool hasSetOperations() const { return !setOperations_.empty(); }
+
         [[nodiscard]] std::string toSQL() const override;
         [[nodiscard]] json toJSON() const;
         Resultset run(std::shared_ptr<Connection> connection) override;
         [[nodiscard]] std::string joinidentifier() const override;
+
+        [[nodiscard]] std::expected<void, std::string> validate() const;
 
     private:
         std::optional<std::string> schema_;
@@ -235,17 +287,21 @@ namespace cppsqlx
         std::optional<size_t> limit_;
         std::optional<size_t> offset_;
 
-private:
-    // Structure interne pour collecter à plat les CTEs durant la récursion
-    struct CollectedCTE {
-        std::string name;
-        std::string sql;
-    };
+        std::vector<SetOperationBranch> setOperations_;
+        std::vector<Order> unionOrderBy_;
+        std::optional<size_t> unionLimit_;
+        std::optional<size_t> unionOffset_;
 
-    // Helper interne récursif pour générer le corps SQL et collecter les CTEs
-    std::string toSQLInternal(std::vector<CollectedCTE>& collectedCtes) const;
+    private:
+        // Structure interne pour collecter à plat les CTEs durant la récursion
+        struct CollectedCTE
+        {
+            std::string name;
+            std::string sql;
+        };
 
-
+        // Helper interne récursif pour générer le corps SQL et collecter les CTEs
+        std::string toSQLInternal(std::vector<CollectedCTE> &collectedCtes) const;
 
         // Helpers for SELECT
         void addSelection(const SQLExpression &expr);
@@ -278,6 +334,7 @@ private:
         }
 
         void addOrderBy(const Order &order);
+
     };
 
 } // namespace cppsqlx

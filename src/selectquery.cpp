@@ -244,29 +244,26 @@ namespace cppsqlx
     }
 
     // Le helper interne récursif qui collecte les CTEs à plat
-    std::string SelectQuery::toSQLInternal(std::vector<CollectedCTE>& collectedCtes) const
+    std::string SelectQuery::toSQLInternal(std::vector<CollectedCTE> &collectedCtes) const
     {
-        // 1. D'abord, collecter les CTEs locaux définis sur cette instance précise
+        // 1. Collecter les CTEs locaux définis sur cette instance précise
         for (const auto &cte : ctes_)
         {
-            // Vérifier les doublons pour éviter de redéclarer le même CTE
-            auto it = std::find_if(collectedCtes.begin(), collectedCtes.end(), 
-                [&cte](const CollectedCTE& c) { return c.name == cte.name(); });
-                
+            auto it = std::find_if(collectedCtes.begin(), collectedCtes.end(),
+                                   [&cte](const CollectedCTE &c) { return c.name == cte.name(); });
+
             if (it == collectedCtes.end())
             {
-                // Appel récursif profond : la sous-requête du CTE peut elle-même contenir des CTEs !
                 std::string subQuerySql = cte.query().toSQLInternal(collectedCtes);
                 collectedCtes.push_back({cte.name(), subQuerySql});
             }
         }
 
-        // 2. Ensuite, collecter récursivement les CTEs cachés dans les clauses de JOIN
+        // 2. Collecter récursivement les CTEs cachés dans les clauses de JOIN
         for (const auto &j : joins_)
         {
             if (j.target)
             {
-                // Si la cible du JOIN est une sous-requête (SelectQuery)
                 if (auto subquery = std::dynamic_pointer_cast<SelectQuery>(j.target))
                 {
                     subquery->toSQLInternal(collectedCtes);
@@ -276,8 +273,9 @@ namespace cppsqlx
 
         // 3. Générer le corps de la requête SELECT courante (sans son propre WITH local)
         std::ostringstream sql;
-        
-        auto formatIdent = [this](const std::string &ident) -> std::string {
+
+        auto formatIdent = [this](const std::string &ident) -> std::string
+        {
             return quoted_ ? SQLExpression::quoteIdentifier(ident) : ident;
         };
 
@@ -293,7 +291,6 @@ namespace cppsqlx
             sql << " FROM ";
             if (from_)
             {
-                // Si le FROM est lui-même une sous-requête, collecter ses CTEs
                 if (auto subFrom = std::dynamic_pointer_cast<SelectQuery>(from_))
                 {
                     subFrom->toSQLInternal(collectedCtes);
@@ -306,6 +303,10 @@ namespace cppsqlx
             }
             else
             {
+                if (schema_ && !schema_->empty())
+                {
+                    sql << formatIdent(*schema_) << ".";
+                }
                 sql << formatIdent(table_);
                 if (alias_ && !alias_->empty())
                 {
@@ -337,19 +338,22 @@ namespace cppsqlx
                 }
             }
 
-            if (where_)       sql << " WHERE " << where_->toSQL();
-            
+            if (where_)
+                sql << " WHERE " << where_->toSQL();
+
             if (!groupBy_.empty())
             {
                 sql << " GROUP BY ";
                 for (size_t i = 0; i < groupBy_.size(); ++i)
                 {
                     sql << groupBy_[i].toSQL();
-                    if (i + 1 < groupBy_.size()) sql << ", ";
+                    if (i + 1 < groupBy_.size())
+                        sql << ", ";
                 }
             }
 
-            if (having_)      sql << " HAVING " << having_->toSQL();
+            if (having_)
+                sql << " HAVING " << having_->toSQL();
 
             if (!orderBy_.empty())
             {
@@ -358,12 +362,66 @@ namespace cppsqlx
                 {
                     sql << orderBy_[i].expr.toSQL()
                         << (orderBy_[i].dir == SortDirection::ASC ? " ASC" : " DESC");
-                    if (i + 1 < orderBy_.size()) sql << ", ";
+                    if (i + 1 < orderBy_.size())
+                        sql << ", ";
                 }
             }
 
-            if (limit_)       sql << " LIMIT " << *limit_;
-            if (offset_)      sql << " OFFSET " << *offset_;
+            if (limit_)
+                sql << " LIMIT " << *limit_;
+            if (offset_)
+                sql << " OFFSET " << *offset_;
+        }
+
+        // 4. Traitement des opérations ensemblistes (UNION ALL, UNION, INTERSECT, EXCEPT)
+        if (!setOperations_.empty())
+        {
+            std::ostringstream compound;
+
+            bool wrapFirst = (!orderBy_.empty() || limit_.has_value() || offset_.has_value());
+            if (wrapFirst)
+                compound << "(\n" << sql.str() << "\n)";
+            else
+                compound << sql.str();
+
+            for (const auto &branch : setOperations_)
+            {
+                if (!branch.query)
+                    continue;
+
+                // Remonte également les CTEs définies dans les branches suivantes vers collectedCtes
+                std::string branchSql = branch.query->toSQLInternal(collectedCtes);
+
+                compound << "\n" << toString(branch.op) << "\n";
+
+                bool wrapBranch = (!branch.query->orderBy_.empty() ||
+                                   branch.query->limit_.has_value() ||
+                                   branch.query->offset_.has_value() ||
+                                   branch.query->hasSetOperations());
+                if (wrapBranch)
+                    compound << "(\n" << branchSql << "\n)";
+                else
+                    compound << branchSql;
+            }
+
+            if (!unionOrderBy_.empty())
+            {
+                compound << "\nORDER BY ";
+                for (size_t i = 0; i < unionOrderBy_.size(); ++i)
+                {
+                    compound << unionOrderBy_[i].expr.toSQL()
+                             << (unionOrderBy_[i].dir == SortDirection::ASC ? " ASC" : " DESC");
+                    if (i + 1 < unionOrderBy_.size())
+                        compound << ", ";
+                }
+            }
+
+            if (unionLimit_.has_value())
+                compound << "\nLIMIT " << *unionLimit_;
+            if (unionOffset_.has_value())
+                compound << "\nOFFSET " << *unionOffset_;
+
+            return compound.str();
         }
 
         return sql.str();
@@ -516,6 +574,46 @@ namespace cppsqlx
             }
             j["ctes"] = jsonCtes;
         }
+
+        // 10. Opérations ensemblistes (UNION ALL, UNION, INTERSECT, EXCEPT)
+        if (!setOperations_.empty())
+        {
+            json jsonSetOps = json::array();
+            for (const auto &branch : setOperations_)
+            {
+                if (!branch.query)
+                    continue;
+                json opJson;
+                opJson["operator"] = toString(branch.op);
+                opJson["query"] = branch.query->toJSON();
+                jsonSetOps.push_back(std::move(opJson));
+            }
+            j["set_operations"] = std::move(jsonSetOps);
+        }
+
+        // 11. Clauses globales post-UNION (ORDER BY / LIMIT / OFFSET)
+        if (!unionOrderBy_.empty())
+        {
+            json jsonUnionOrderBy = json::array();
+            for (const auto &order : unionOrderBy_)
+            {
+                json orderJson;
+                orderJson["expression"] = order.expr.toJSON();
+                orderJson["direction"] = (order.dir == SortDirection::ASC) ? "ASC" : "DESC";
+                jsonUnionOrderBy.push_back(std::move(orderJson));
+            }
+            j["union_orderby"] = std::move(jsonUnionOrderBy);
+        }
+
+        if (unionLimit_.has_value())
+        {
+            j["union_limit"] = unionLimit_.value();
+        }
+        if (unionOffset_.has_value())
+        {
+            j["union_offset"] = unionOffset_.value();
+        }
+
 
         // Enrobage dans un objet racine "selectquery" pour la cohérence
         return json{{"selectquery", j}};
@@ -675,6 +773,57 @@ namespace cppsqlx
                 }
             }
 
+            // 10. Opérations ensemblistes (UNION ALL, UNION, INTERSECT, EXCEPT)
+            if (data.contains("set_operations") && data["set_operations"].is_array())
+            {
+                for (const auto &opJson : data["set_operations"])
+                {
+                    if (!opJson.contains("query"))
+                        continue;
+
+                    auto branchRes = SelectQuery::fromJSON(opJson["query"]);
+                    if (!branchRes)
+                        return std::unexpected("SelectQuery::fromJSON (set_operations) -> " + branchRes.error());
+
+                    std::string opStr = opJson.value("operator", "UNION ALL");
+                    SetOperator op = SetOperator::UNION_ALL;
+                    if (opStr == "UNION")
+                        op = SetOperator::UNION;
+                    else if (opStr == "INTERSECT")
+                        op = SetOperator::INTERSECT;
+                    else if (opStr == "EXCEPT")
+                        op = SetOperator::EXCEPT;
+
+                    query.setOperations_.push_back({op, std::make_shared<SelectQuery>(std::move(*branchRes))});
+                }
+            }
+
+            // 11. Clauses globales post-UNION (ORDER BY / LIMIT / OFFSET)
+            if (data.contains("union_orderby") && data["union_orderby"].is_array())
+            {
+                for (const auto &obJson : data["union_orderby"])
+                {
+                    auto exprRes = SQLExpression::fromJSON(obJson.at("expression"));
+                    if (!exprRes)
+                        return std::unexpected("SelectQuery::fromJSON (union_orderby expr) -> " + exprRes.error());
+
+                    std::string dirStr = obJson.at("direction").get<std::string>();
+                    SortDirection dir = (dirStr == "DESC") ? SortDirection::DESC : SortDirection::ASC;
+
+                    query.unionOrderBy_.emplace_back(std::move(*exprRes), dir);
+                }
+            }
+
+            if (data.contains("union_limit") && !data["union_limit"].is_null())
+            {
+                query.unionLimit_ = data["union_limit"].get<size_t>();
+            }
+            if (data.contains("union_offset") && !data["union_offset"].is_null())
+            {
+                query.unionOffset_ = data["union_offset"].get<size_t>();
+            }
+
+
             return query;
         }
         catch (const std::exception &e)
@@ -723,5 +872,91 @@ namespace cppsqlx
     {
         orderBy_.push_back(order);
     }
+
+    SelectQuery &SelectQuery::unionAll(const SelectQuery &other)
+    {
+        setOperations_.push_back({SetOperator::UNION_ALL, std::make_shared<SelectQuery>(other)});
+        return *this;
+    }
+
+    SelectQuery &SelectQuery::unionAll(std::shared_ptr<SelectQuery> other)
+    {
+        if (other)
+            setOperations_.push_back({SetOperator::UNION_ALL, std::move(other)});
+        return *this;
+    }
+
+    SelectQuery &SelectQuery::unionDistinct(const SelectQuery &other)
+    {
+        setOperations_.push_back({SetOperator::UNION, std::make_shared<SelectQuery>(other)});
+        return *this;
+    }
+
+    SelectQuery &SelectQuery::unionDistinct(std::shared_ptr<SelectQuery> other)
+    {
+        if (other)
+            setOperations_.push_back({SetOperator::UNION, std::move(other)});
+        return *this;
+    }
+
+    SelectQuery &SelectQuery::intersect(const SelectQuery &other)
+    {
+        setOperations_.push_back({SetOperator::INTERSECT, std::make_shared<SelectQuery>(other)});
+        return *this;
+    }
+
+    SelectQuery &SelectQuery::except(const SelectQuery &other)
+    {
+        setOperations_.push_back({SetOperator::EXCEPT, std::make_shared<SelectQuery>(other)});
+        return *this;
+    }
+
+    SelectQuery &SelectQuery::unionOrderBy(const Order &order)
+    {
+        unionOrderBy_.push_back(order);
+        return *this;
+    }
+
+    SelectQuery &SelectQuery::unionLimit(size_t n)
+    {
+        unionLimit_ = n;
+        return *this;
+    }
+
+    SelectQuery &SelectQuery::unionOffset(size_t n)
+    {
+        unionOffset_ = n;
+        return *this;
+    }
+
+    std::expected<void, std::string> SelectQuery::validate() const
+    {
+        if (setOperations_.empty())
+            return {};
+
+        size_t expectedCols = selectionSet_.size();
+        for (size_t i = 0; i < setOperations_.size(); ++i)
+        {
+            const auto &branch = setOperations_[i];
+            if (!branch.query)
+                return std::unexpected("Branche " + toString(branch.op) + " #" + std::to_string(i + 1) + " nulle.");
+
+            auto subVal = branch.query->validate();
+            if (!subVal)
+                return subVal;
+
+            if (expectedCols > 0 && branch.query->selectionSet_.size() > 0 &&
+                branch.query->selectionSet_.size() != expectedCols)
+            {
+                return std::unexpected(
+                    "Incompatibilité de colonnes dans " + toString(branch.op) +
+                    " : la requête principale projette " + std::to_string(expectedCols) +
+                    " colonne(s), mais la branche #" + std::to_string(i + 1) +
+                    " en projette " + std::to_string(branch.query->selectionSet_.size()) + ".");
+            }
+        }
+        return {};
+    }
+
 
 } // namespace cppsqlx
