@@ -48,7 +48,11 @@ public:
 
     // ---------- Execution Logic (Déclarations uniquement) ----------
     [[nodiscard]] bool canExecute(const std::map<std::string, JobResult>& workflowContext) const;
-    JobResult execute(std::shared_ptr<Connection> connection);
+    using JobProgressCallback = std::function<void(const std::string &jobName, JobStatus status, const std::string &msg)>;
+
+    JobResult execute(
+        std::shared_ptr<Connection> connection,
+        JobProgressCallback onProgress = nullptr);
 
     // ---------- JSON Concepts Contract ----------
     [[nodiscard]] json toJSON() const;

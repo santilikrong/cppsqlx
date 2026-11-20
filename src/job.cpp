@@ -18,7 +18,8 @@ bool Job::canExecute(const std::map<std::string, JobResult>& workflowContext) co
     return true;
 }
 
-JobResult Job::execute(std::shared_ptr<Connection> connection)
+JobResult Job::execute(std::shared_ptr<Connection> connection,
+    JobProgressCallback onProgress)
 {
     // 1. Récupération de l'instance du logger dédié aux Jobs
     auto logger = cppsqlx::Logger::instance().getLogger("cppsqlx.job");
@@ -26,36 +27,41 @@ JobResult Job::execute(std::shared_ptr<Connection> connection)
     LOG4CXX_INFO(logger, "[Job: " << name_ << "] Démarrage de l'exécution du bloc de tâches (" << tasks_.size() << " tâches enregistrées)");
 
     // Itération séquentielle et ordonnée sur les tâches du Job
-    for (const auto& [pos, taskPtr] : tasks_) {
-        if (taskPtr) {
-            
-            // 2. Log d'annonce avant le traitement physique
-            LOG4CXX_INFO(logger, "[Job: " << name_ << "] Lance la tâche '" << taskPtr->name());
+    for (const auto &[pos, taskPtr] : tasks_)
+    {
+        if (taskPtr)
+        {
+            LOG4CXX_INFO(logger, "[Job: " << name_ << "] Lance la tâche '" << taskPtr->name() << "'");
 
-            // Exécution de la tâche et capture d'une éventuelle erreur
-            auto taskRes = taskPtr->execute(connection);
-            
-            if (!taskRes) {
-std::cerr << "[Job: " << name_ << "] ECHEC CRITIQUE pos " << pos 
+            auto taskRes = taskPtr->execute(connection, [&](int curStep, int totSteps, const std::string &stepName)
+            {
+                if (onProgress)
+                {
+                    onProgress(
+                        name_,
+                        JobStatus::Running,
+                        "Step " + std::to_string(curStep) + "/" + std::to_string(totSteps) + " (" + stepName + ")");
+                }
+            });
+
+            if (!taskRes)
+            {
+                std::cerr << "[Job: " << name_ << "] ECHEC CRITIQUE pos " << pos
                           << " ('" << taskPtr->name() << "') -> " << taskRes.error() << std::endl;
 
-                // 3. Log d'erreur critique pour identifier instantanément le maillon faible
-                LOG4CXX_ERROR(logger, "[Job: " << name_ << "] 🔥 ÉCHEC CRITIQUE à la position " << pos 
-                    << " lors de l'exécution de '" << taskPtr->name() << "' -> Erreur : " << taskRes.error());
+                LOG4CXX_ERROR(logger, "[Job: " << name_ << "] ÉCHEC CRITIQUE à la position " << pos
+                                               << " lors de l'exécution de '" << taskPtr->name() << "' -> Erreur : " << taskRes.error());
 
-                // Interruption immédiate du Job en cas d'échec d'une tâche
                 return JobResult{
-                    name_, 
-                    JobStatus::Failed, 
-                    "Job failed at task pos " + std::to_string(pos) + ": " + taskRes.error()
-                };
+                    name_,
+                    JobStatus::Failed,
+                    "Job failed at task pos " + std::to_string(pos) + ": " + taskRes.error()};
             }
 
-            // 4. Log de validation en cas de succès de l'étape
-            LOG4CXX_INFO(logger, "[Job: " << name_ << "] Tâche '" << taskPtr->name());
+            LOG4CXX_INFO(logger, "[Job: " << name_ << "] Tâche '" << taskPtr->name() << "' terminée avec succès");
         }
     }
-    
+
     LOG4CXX_INFO(logger, "[Job: " << name_ << "] Exécution globale complétée avec SUCCÈS.");
     return JobResult{name_, JobStatus::Success, "Job executed successfully"};
 }

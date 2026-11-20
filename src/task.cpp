@@ -55,7 +55,7 @@ namespace cppsqlx
         }
     }
 
-    std::expected<void, std::string> Task::execute(std::shared_ptr<Connection> connection)
+    std::expected<void, std::string> Task::execute(std::shared_ptr<Connection> connection,StepProgressCallback onStepProgress)
     {
         auto logger = cppsqlx::Logger::instance().getLogger("cppsqlx.task");
         if (!connection || !connection->isConnected())
@@ -64,6 +64,7 @@ namespace cppsqlx
         }
 
         // Itération séquentielle et ordonnée sur les étapes (UnitSelect) de la tâche
+        int completedCount = 0;
         for (const auto &[stepIndex, unit] : steps_)
         {
             // 1. Extraction du SQL polymorphe depuis le std::variant (Select, Insert, CTAS, Update, Delete)
@@ -112,6 +113,12 @@ namespace cppsqlx
             catch (const std::exception &e)
             {
                 return std::unexpected("Exception caught at step " + std::to_string(stepIndex) + ": " + e.what());
+            }
+
+            ++completedCount;
+            if (onStepProgress)
+            {
+                onStepProgress(completedCount, static_cast<int>(steps_.size()), unit.name);
             }
         }
 

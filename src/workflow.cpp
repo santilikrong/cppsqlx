@@ -138,7 +138,7 @@ namespace cppsqlx
                     else
                     {
                         // Exécution 100% parallèle sans aucun verrou global
-                        result = jobPtr->execute(workerConn);
+                        result = jobPtr->execute(workerConn, onJobStateChange);
                         workerConn->close();
                     }
 
