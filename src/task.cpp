@@ -88,7 +88,11 @@ namespace cppsqlx
                 int randomNum = rand() % 5000;
                 std::this_thread::sleep_for(std::chrono::milliseconds(randomNum));
                 auto res = stmt->execute(sql);
-
+    std::cout << "--------------------------------------------------------" << std::endl;
+    std::cout << "- REQUÊTE SOUMISE À LA BASE DE DONNÉES :" << std::endl;
+    std::cout << "--------------------------------------------------------" << std::endl;
+    std::cout << sql << std::endl;
+    std::cout << "--------------------------------------------------------" << std::endl;
                 if (!res)
                 {
                     return std::unexpected("SQL Error at step " + std::to_string(stepIndex) + " (" + unit.name + "): " + res.error());
