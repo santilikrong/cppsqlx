@@ -5,6 +5,8 @@
 
 #include "cppsqlx/logger.hpp"
 
+static log4cxx::LoggerPtr logger = log4cxx::Logger::getLogger("cppsqlx.Task");
+
 namespace cppsqlx
 {
 
@@ -82,10 +84,9 @@ namespace cppsqlx
                 }
 
                 // 3. Exécution de la requête brute sur PostgreSQL
-                
-                int randomNum = rand() % 10000;
+
+                int randomNum = rand() % 5000;
                 std::this_thread::sleep_for(std::chrono::milliseconds(randomNum));
-                std::cout << randomNum << std::endl;
                 auto res = stmt->execute(sql);
 
                 if (!res)
@@ -93,13 +94,16 @@ namespace cppsqlx
                     return std::unexpected("SQL Error at step " + std::to_string(stepIndex) + " (" + unit.name + "): " + res.error());
                 }
 
-        if (res->rows() > 0 || res->columns() > 0) {
-            LOG4CXX_INFO(logger, "[Task: " << name_ << "] Step " << stepIndex 
-                << " executed successfully (" << res->rows() << " rows affected)");
-        } else {
-            LOG4CXX_INFO(logger, "[Task: " << name_ << "] Step " << stepIndex 
-                << " executed successfully (Command/DDL OK)");
-        }
+                if (res->rows() > 0 || res->columns() > 0)
+                {
+                    LOG4CXX_INFO(logger, "[Task: " << name_ << "] Step " << stepIndex
+                                                   << " executed successfully (" << res->rows() << " rows affected)");
+                }
+                else
+                {
+                    LOG4CXX_INFO(logger, "[Task: " << name_ << "] Step " << stepIndex
+                                                   << " executed successfully (Command/DDL OK)");
+                }
             }
             catch (const std::exception &e)
             {
