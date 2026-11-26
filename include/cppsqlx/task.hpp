@@ -7,6 +7,7 @@
 #include <cppsqlx/unit_select.hpp>
 #include <cppsqlx/json_concepts.hpp>
 #include <cppsqlx/connection.hpp>
+#include <functional>
 
 namespace cppsqlx
 {
@@ -30,7 +31,11 @@ namespace cppsqlx
         void addStep(int stepIndex, UnitSelect unitSelect) { steps_.insert_or_assign(stepIndex, std::move(unitSelect)); }
 
         // Dans la section public de la classe Task :
-        std::expected<void, std::string> execute(std::shared_ptr<Connection> connection);
+        using StepProgressCallback = std::function<void(int currentStep, int totalSteps, const std::string &stepName)>;
+
+        std::expected<void, std::string> execute(
+            std::shared_ptr<Connection> connection,
+            StepProgressCallback onStepProgress = nullptr);
 
         // ---------- JSON Serialization & Deserialization ----------
         [[nodiscard]] json toJSON() const;

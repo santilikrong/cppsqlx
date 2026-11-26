@@ -126,6 +126,8 @@ namespace cppsqlx
         json j;
         j["name"] = name_;
         j["path"] = path_;
+        j["folders"] = folders_;
+        j["query_folders"] = queryFolders_;
 
         // 1. Physical Connections
         json jsonPhys = json::object();
@@ -232,8 +234,26 @@ namespace cppsqlx
             }
 
             // 3. Queries (std::variant dynamic dispatch)
+
+            if (data.contains("folders") && data["folders"].is_array())
+            {
+                proj.folders_ = data["folders"].get<std::set<std::string>>();
+            }
+
+            if (data.contains("query_folders") && data["query_folders"].is_object())
+            {
+                proj.queryFolders_ = data["query_folders"].get<std::map<std::string, std::string>>();
+                // S'assure que chaque dossier référencé est aussi présent dans folders_
+                for (const auto &[qName, folderPath] : proj.queryFolders_)
+                {
+                    if (!folderPath.empty())
+                        proj.folders_.insert(folderPath);
+                }
+            }
+
             if (data.contains("queries") && data["queries"].is_object())
             {
+
                 for (const auto &[key, valJson] : data["queries"].items())
                 {
                     std::string type = valJson.at("type").get<std::string>();
